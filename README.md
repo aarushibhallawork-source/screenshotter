@@ -10,6 +10,13 @@ Take a screenshot and it is:
 
 You get a Y2K-style gallery to browse them and a desktop widget that takes its colours from your wallpaper.
 
+## Download
+
+| | Download | Works on | Setup |
+|---|---|---|---|
+| 🍎 **Mac** | **[ScreenshotVault.dmg](https://github.com/aarushibhallawork-source/screenshotter/releases/latest/download/ScreenshotVault.dmg)** | macOS 13+, Apple silicon or Intel | [Mac instructions](#mac) |
+| 🪟 **Windows** | **[ScreenshotVault-Setup.exe](https://github.com/aarushibhallawork-source/screenshotter/releases/latest/download/ScreenshotVault-Setup.exe)** | Windows 10 or 11, 64-bit | [Windows instructions](#windows) |
+
 ## Mac
 
 ### Install (no Terminal needed)
