@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Screenshot Vault Widget</title>
+<link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Silkscreen&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #fff8f6; --ink: #5a1124; --muted: #9a5a68; --pink: #f4bfc6; --pink-soft: #f8d3d8; --pink-wash: #fdecee;
+    --rose: #c94a6b; --cream: #fff8f6;
+    --mono: "Space Mono", ui-monospace, Menlo, monospace; --pixel: "Silkscreen", "Space Mono", monospace;
+    --bubble: "Bagel Fat One", "Arial Rounded MT Bold", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  .win, .titlebar, .grid, .pic, .foot, .btn, .menu { transition: background .5s, color .5s, border-color .5s, box-shadow .5s; }
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; user-select: none; -webkit-user-select: none; }
+  body { padding: 5px 10px 10px 5px; color: var(--ink); font: 12px/1.4 var(--mono); cursor: default; }
+  .win { height: 100%; display: flex; flex-direction: column; background: var(--paper); border: 2px solid var(--ink);
+    border-radius: 6px; overflow: hidden; box-shadow: 0 0 0 3px var(--cream), 5px 5px 0 3px var(--ink); }
+  .titlebar { height: 26px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 5px 0 9px; border-bottom: 2px solid var(--ink);
+    background: var(--ink); color: var(--pink); font: 11px var(--pixel); }
+  .titlebar .t { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color .15s; }
+  .titlebar .t.flash { color: #fff; }
+  .ctl { display: flex; gap: 3px; }
+  .ctl i { width: 16px; height: 14px; border: 1.5px solid var(--pink); background: transparent; color: var(--pink); display: grid; place-items: center;
+    font: 700 9px/1 var(--mono); font-style: normal; }
+  .grid { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: 10px; padding: 10px;
+    background: repeating-linear-gradient(90deg, var(--pink-wash) 0 14px, var(--paper) 14px 28px); }
+  .pic { position: relative; min-height: 0; display: flex; flex-direction: column; background: var(--paper); border: 1.5px solid var(--ink);
+    padding: 4px 4px 0; box-shadow: 2px 2px 0 var(--ink); cursor: pointer; transition: transform .12s, box-shadow .12s; }
+  .pic:nth-child(odd) { --tilt: -1.5deg; } .pic:nth-child(even) { --tilt: 1.2deg; }
+  .pic:hover { transform: rotate(var(--tilt)) translateY(-2px); box-shadow: 3px 4px 0 var(--ink); z-index: 2; }
+  .pic:active { transform: translate(2px, 2px); box-shadow: none; }
+  .pic img, .pic .vid { flex: 1; min-height: 0; width: 100%; object-fit: cover; border: 1px solid var(--ink); display: block;
+    background: repeating-conic-gradient(var(--pink-soft) 0 25%, var(--paper) 0 50%) 0 0 / 10px 10px; }
+  .pic .vid { display: grid; place-items: center; font: 10px var(--pixel); }
+  .pic .cap { display: flex; justify-content: space-between; gap: 4px; padding: 3px 1px 4px; font-size: 10.5px; }
+  .pic .cap b { color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pic .cap span { font: 9px var(--pixel); color: var(--muted); white-space: nowrap; }
+  .pic .hint { position: absolute; right: 8px; top: 8px; background: var(--ink); color: var(--pink); border: 1.5px solid var(--ink);
+    font: 9px var(--pixel); padding: 1px 5px; opacity: 0; transition: opacity .12s; }
+  .pic:hover .hint { opacity: 1; }
+  .pic.done .hint { opacity: 1; background: var(--rose); color: #fff; }
+  .empty { grid-column: 1 / -1; grid-row: 1 / -1; display: grid; place-items: center; text-align: center; color: var(--muted); }
+  .empty b { display: block; font: 20px var(--bubble); color: var(--rose); -webkit-text-stroke: 1px var(--ink); margin-bottom: 4px; }
+  .foot { flex: none; display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-top: 2px solid var(--ink); background: var(--pink); }
+  .foot .stats { flex: 1; font-size: 10.5px; color: var(--ink); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .btn { border: 1.5px solid var(--ink); background: var(--ink); color: var(--pink); font: 10px var(--pixel); padding: 3px 9px; cursor: pointer;
+    box-shadow: 2px 2px 0 var(--ink); }
+  .btn:hover { background: var(--rose); color: #fff; }
+  .btn:active { transform: translate(2px, 2px); box-shadow: none; }
+  .menu { position: fixed; z-index: 50; min-width: 168px; display: none; background: var(--paper); border: 2px solid var(--ink);
+    border-radius: 5px; box-shadow: 0 0 0 2px var(--cream), 4px 4px 0 2px var(--ink); padding: 4px; font: 12px var(--mono); }
+  .menu.open { display: block; }
+  .menu button { display: flex; width: 100%; align-items: center; gap: 8px; border: 0; background: none; color: var(--ink);
+    font: inherit; text-align: left; padding: 5px 8px; border-radius: 3px; cursor: pointer; }
+  .menu button:hover { background: var(--pink); }
+  .menu button.danger { color: var(--rose); font-weight: 700; }
+  .menu button.danger:hover { background: var(--ink); color: var(--pink); }
+  .menu hr { border: 0; border-top: 1.5px dashed var(--pink); margin: 3px 4px; }
+  .pic.menu-on { outline: 2px dashed var(--rose); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="win">
+  <div class="titlebar"><span class="t" id="title">♡ recent pics</span><span class="ctl"><i>_</i><i>□</i><i>×</i></span></div>
+  <div class="grid" id="grid"></div>
+  <div class="foot"><span class="stats" id="stats">loading…</span><button class="btn" id="open">open vault ↗</button></div>
+</div>
+<div class="menu" id="menu" role="menu">
+  <button data-act="copy">♡ copy</button>
+  <button data-act="open">↗ open</button>
+  <button data-act="reveal">⌕ show in finder</button>
+  <hr>
+  <button data-act="trash" class="danger">✕ move to trash</button>
+</div>
+<script>
+const $ = s => document.querySelector(s);
+// Called by the desktop app with colours sampled from the current wallpaper.
+window.applyTheme = t => { for (const [k, v] of Object.entries(t)) document.documentElement.style.setProperty("--" + k, v); };
+const SHOW = 6;
+let items = [], version = -1;
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
+const enc = p => p.split("/").map(encodeURIComponent).join("/");
+const api = (path, body) => fetch(path, { method: "POST", headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body || {}) }).then(r => r.json());
+
+function when(ts) {
+  const d = new Date(ts * 1000), now = new Date();
+  const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toLowerCase();
+  if (d.toDateString() === now.toDateString()) return time;
+  const y = new Date(now); y.setDate(now.getDate() - 1);
+  if (d.toDateString() === y.toDateString()) return "yday";
+  return d.toLocaleDateString([], { day: "numeric", month: "short" }).toLowerCase();
+}
+
+async function load() {
+  const r = await fetch("/api/list").then(r => r.json());
+  items = r.items.slice(0, SHOW); version = r.version;
+  const today = r.items.filter(i => new Date(i.ts * 1000).toDateString() === new Date().toDateString()).length;
+  $("#stats").textContent = `${today} today · ${r.items.length} total`;
+  $("#grid").innerHTML = items.length ? items.map((it, i) => `
+    <div class="pic" data-i="${i}" title="Click to copy">
+      ${it.kind === "image"
+        ? `<img src="${it.thumb ? `/thumbs/${enc(it.path)}.jpg` : `/files/${enc(it.path)}`}" alt="">`
+        : `<div class="vid">▶ rec</div>`}
+      <span class="hint">copy ♡</span>
+      <div class="cap"><b>${esc(it.app || "screenshot")}</b><span>${when(it.ts)}</span></div>
+    </div>`).join("")
+    : `<div class="empty"><div><b>no pics yet</b>press ⌘⇧4 ✨</div></div>`;
+}
+
+let flashTimer;
+$("#grid").addEventListener("click", async e => {
+  const el = e.target.closest(".pic"); if (!el) return;
+  const r = await api("/api/copy", { path: items[+el.dataset.i].path });
+  document.querySelectorAll(".pic.done").forEach(p => { p.classList.remove("done"); p.querySelector(".hint").textContent = "copy ♡"; });
+  el.classList.add("done"); el.querySelector(".hint").textContent = r.ok ? "copied!" : "oops";
+  const t = $("#title"); t.textContent = r.ok ? "♥ copied 2 clipboard!" : "♡ couldn't copy"; t.classList.add("flash");
+  clearTimeout(flashTimer);
+  flashTimer = setTimeout(() => { t.textContent = "♡ recent pics"; t.classList.remove("flash");
+    el.classList.remove("done"); el.querySelector(".hint").textContent = "copy ♡"; }, 1800);
+});
+// right-click (two-finger click) menu
+let menuIdx = -1;
+const menu = $("#menu");
+function closeMenu() { menu.classList.remove("open"); document.querySelectorAll(".pic.menu-on").forEach(p => p.classList.remove("menu-on")); menuIdx = -1; }
+function setTitle(msg) {
+  const t = $("#title"); t.textContent = msg; t.classList.add("flash");
+  clearTimeout(flashTimer); flashTimer = setTimeout(() => { t.textContent = "♡ recent pics"; t.classList.remove("flash"); }, 1800);
+}
+document.addEventListener("contextmenu", e => {
+  e.preventDefault();
+  const el = e.target.closest(".pic");
+  closeMenu();
+  if (!el) return;
+  menuIdx = +el.dataset.i; el.classList.add("menu-on");
+  menu.classList.add("open");
+  const w = menu.offsetWidth, h = menu.offsetHeight;
+  menu.style.left = Math.min(e.clientX, innerWidth - w - 12) + "px";
+  menu.style.top = Math.min(e.clientY, innerHeight - h - 12) + "px";
+});
+menu.addEventListener("click", async e => {
+  const b = e.target.closest("button"); if (!b || menuIdx < 0) return;
+  const it = items[menuIdx]; const act = b.dataset.act; closeMenu();
+  if (act === "copy") { const r = await api("/api/copy", { path: it.path }); setTitle(r.ok ? "♥ copied 2 clipboard!" : "♡ couldn't copy"); }
+  else if (act === "open") api("/api/open", { path: it.path });
+  else if (act === "reveal") api("/api/reveal", { path: it.path });
+  else if (act === "trash") { await api("/api/delete", { paths: [it.path] }); setTitle("✕ moved to trash"); load(); }
+});
+document.addEventListener("mousedown", e => { if (!e.target.closest("#menu")) closeMenu(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeMenu(); });
+window.addEventListener("blur", closeMenu);
+$("#open").onclick = () => api("/api/openvault");
+
+setInterval(async () => {
+  try { const r = await fetch("/api/version").then(r => r.json()); if (r.version !== version) load(); } catch {}
+}, 1500);
+setInterval(load, 60000); // keep "today" counts and times fresh
+load();
+</script>
+</body>
+</html>

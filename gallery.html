@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Screenshot Vault</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Silkscreen&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f8f4fb; --paper: #ffffff; --ink: #25202b; --muted: #6f6680; --line: #25202b;
+    --pink: #ff5fb4; --pink-soft: #ffc4e6; --pink-wash: #ffe4f3;
+    --lav: #c9b6ff; --lav-soft: #e6ddff; --blue: #9fc2ff; --blue-soft: #dbe8ff; --mint: #b9f3e4;
+    --butter: #fff3b0; --danger: #ff4d6d;
+    --mono: "Space Mono", ui-monospace, Menlo, monospace;
+    --pixel: "Silkscreen", "Space Mono", monospace;
+    --bubble: "Bagel Fat One", "Arial Rounded MT Bold", system-ui, sans-serif;
+    --hard: 3px 3px 0 var(--line);
+  }
+  * { box-sizing: border-box; }
+
+  body { margin: 0; color: var(--ink); font: 13px/1.5 var(--mono); padding-bottom: 64px; min-height: 100vh;
+    background:
+      radial-gradient(circle at 12% 18%, var(--pink-wash) 0, transparent 32%),
+      radial-gradient(circle at 88% 8%, var(--lav-soft) 0, transparent 30%),
+      radial-gradient(circle at 70% 85%, var(--blue-soft) 0, transparent 35%),
+      radial-gradient(#d9cfe6 1px, transparent 1.2px) 0 0 / 18px 18px,
+      var(--bg);
+    background-attachment: fixed; }
+  button, input, select { font: inherit; color: inherit; }
+  ::selection { background: var(--pink-soft); }
+
+  /* masthead */
+  header { position: relative; z-index: 6; }
+  .mast { max-width: 1320px; margin: 0 auto; padding: 18px 24px 10px; display: flex; gap: 22px; align-items: center; flex-wrap: wrap; }
+  .logo { font: 44px/0.9 var(--bubble); margin: 0; letter-spacing: -.01em; transform: rotate(-4deg);
+    background: linear-gradient(180deg, #fff 0%, var(--pink-soft) 30%, var(--pink) 62%, #c8338a 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    -webkit-text-stroke: 2px var(--line); filter: drop-shadow(3px 3px 0 var(--line)); user-select: none; }
+  .logo small { display: block; font-size: 30px; padding-left: 26px; }
+  .spacer { flex: 1; }
+  .sticky-bar { background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: blur(10px);
+    border-bottom: 2px dashed #d6c8ea; }
+
+  /* window chrome */
+  .win { background: var(--paper); border: 2px solid var(--line); box-shadow: var(--hard); }
+  .titlebar { display: flex; align-items: center; gap: 8px; padding: 4px 6px 4px 10px; border-bottom: 2px solid var(--line);
+    background: linear-gradient(90deg, var(--lav-soft), var(--blue-soft)); font: 12px var(--pixel); }
+  .titlebar.pink { background: linear-gradient(90deg, var(--pink-soft), var(--lav-soft)); }
+  .titlebar.mint { background: linear-gradient(90deg, var(--mint), var(--blue-soft)); }
+  .titlebar .t { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .titlebar .count { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .ctl { display: flex; gap: 3px; }
+  .ctl i { width: 17px; height: 15px; border: 1.5px solid var(--line); background: #fff; display: grid; place-items: center;
+    font: 700 10px/1 var(--mono); font-style: normal; }
+  .ctl i.x { cursor: pointer; }
+  .ctl i.x:hover { background: var(--pink); color: #fff; }
+
+  /* search window */
+  .searchwin { display: flex; align-items: center; gap: 10px; padding: 8px 10px; flex-wrap: wrap; }
+  .searchwin input[type=search] { width: 250px; border: 2px solid var(--line); padding: 6px 10px; background: #fff; outline: none; }
+  .searchwin input[type=search]:focus { background: var(--pink-wash); }
+  .searchwin label { font-size: 12px; display: flex; gap: 6px; align-items: center; }
+  select { border: 2px solid var(--line); background: #fff; padding: 5px 6px; cursor: pointer; }
+
+  .chips { max-width: 1320px; margin: 0 auto; padding: 8px 24px 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .chips .lbl { font: 11px var(--pixel); color: var(--muted); margin-right: 4px; }
+  .chip { border: 2px solid var(--line); background: #fff; border-radius: 99px; padding: 3px 12px; font-size: 12px; cursor: pointer;
+    transition: transform .1s; }
+  .chip:hover { transform: translateY(-1px); background: var(--pink-wash); }
+  .chip.on { background: var(--pink); color: #fff; box-shadow: 2px 2px 0 var(--line); }
+  .chip em { font-style: normal; opacity: .65; margin-left: 3px; }
+
+  main { max-width: 1320px; margin: 0 auto; padding: 18px 24px 40px; display: grid; gap: 26px; }
+
+  /* day window */
+  .day .body { padding: 16px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 18px; }
+  .card { position: relative; background: #fff; border: 2px solid var(--line); padding: 8px 8px 0; box-shadow: var(--hard);
+    transition: transform .14s, box-shadow .14s; }
+  .card:nth-child(3n+1) { --tilt: -1.2deg; } .card:nth-child(3n+2) { --tilt: .8deg; } .card:nth-child(3n) { --tilt: -.4deg; }
+  .card:hover { transform: rotate(var(--tilt)) translateY(-3px); box-shadow: 5px 6px 0 var(--line); z-index: 2; }
+  .card.sel { background: var(--pink-wash); box-shadow: 0 0 0 3px var(--pink), var(--hard); }
+  .thumb { display: block; width: 100%; aspect-ratio: 16/10; object-fit: cover; border: 1.5px solid var(--line);
+    background: repeating-conic-gradient(var(--lav-soft) 0 25%, #fff 0 50%) 0 0 / 14px 14px; cursor: zoom-in; }
+  .meta { display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 8px 2px 9px; }
+  .meta .app { font-weight: 700; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .meta .time { font: 10px var(--pixel); color: var(--muted); white-space: nowrap; }
+  .copy { position: absolute; right: 14px; top: 14px; border: 2px solid var(--line); background: var(--pink); color: #fff;
+    font: 11px var(--pixel); padding: 4px 9px; cursor: pointer; box-shadow: 2px 2px 0 var(--line); opacity: 0; transition: opacity .12s; }
+  .card:hover .copy, .card:focus-within .copy { opacity: 1; }
+  .copy:active, .btn:active { transform: translate(2px, 2px); box-shadow: none; }
+  .check { position: absolute; left: 14px; top: 14px; width: 22px; height: 22px; border: 2px solid var(--line); background: #fff;
+    display: grid; place-items: center; font-size: 13px; cursor: pointer; opacity: 0; transition: opacity .12s; color: var(--pink); }
+  .card:hover .check, .card.sel .check, body.selecting .check { opacity: 1; }
+  .badge { position: absolute; left: 14px; bottom: 46px; background: var(--butter); border: 1.5px solid var(--line);
+    font: 10px var(--pixel); padding: 1px 6px; }
+
+  .btn { border: 2px solid var(--line); background: #fff; padding: 5px 12px; font: 11px var(--pixel); cursor: pointer;
+    box-shadow: 2px 2px 0 var(--line); }
+  .btn:hover { background: var(--lav-soft); }
+  .btn.primary { background: var(--pink); color: #fff; }
+  .btn.primary:hover { background: #ff7bc2; }
+  .btn.danger { background: var(--danger); color: #fff; }
+  kbd { font: 10px var(--pixel); border: 1.5px solid currentColor; padding: 0 4px; margin-left: 4px; opacity: .8; }
+
+  /* empty */
+  .empty { max-width: 460px; margin: 60px auto; }
+  .empty .body { padding: 26px; text-align: center; }
+  .empty .big { font: 26px var(--bubble); color: var(--pink); -webkit-text-stroke: 1px var(--line); margin-bottom: 8px; }
+  .empty kbd { font-size: 12px; padding: 1px 6px; background: var(--pink-wash); }
+
+  /* select dialog */
+  .selbar { position: fixed; left: 50%; bottom: 66px; transform: translateX(-50%); display: none; z-index: 9; min-width: 300px; }
+  body.selecting .selbar { display: block; }
+  .selbar .body { display: flex; gap: 10px; align-items: center; padding: 10px 12px; }
+  .selbar .body span { flex: 1; font-weight: 700; }
+
+  /* toast = new message popup */
+  .toast { position: fixed; right: 22px; bottom: 70px; width: 250px; z-index: 30; transform: translateY(20px) scale(.96);
+    opacity: 0; pointer-events: none; transition: .18s ease; }
+  .toast.show { transform: none; opacity: 1; }
+  .toast .body { display: flex; gap: 12px; align-items: center; padding: 14px; font-size: 12.5px; }
+  .toast .heart { font-size: 26px; color: var(--pink); text-shadow: 2px 2px 0 var(--line); }
+
+  /* lightbox */
+  .lb { position: fixed; inset: 0; z-index: 20; display: none; place-items: center; padding: 30px 20px 80px;
+    background: color-mix(in srgb, var(--lav-soft) 70%, transparent); backdrop-filter: blur(6px); }
+  .lb.open { display: grid; }
+  .lb .win { width: min(1200px, 100%); max-height: 100%; display: flex; flex-direction: column; }
+  .lb-tools { display: flex; gap: 8px; padding: 8px 10px; border-bottom: 2px solid var(--line); background: var(--pink-wash); flex-wrap: wrap; }
+  .lb-body { position: relative; display: grid; place-items: center; min-height: 0; flex: 1; padding: 14px 54px;
+    background: repeating-conic-gradient(#f3eefa 0 25%, #fff 0 50%) 0 0 / 18px 18px; }
+  .lb-body img, .lb-body video { max-width: 100%; max-height: calc(100vh - 220px); object-fit: contain; border: 2px solid var(--line); background: #fff; }
+  .nav { position: absolute; top: 50%; transform: translateY(-50%); width: 34px; height: 48px; border: 2px solid var(--line);
+    background: #fff; box-shadow: 2px 2px 0 var(--line); font: 18px var(--pixel); cursor: pointer; }
+  .nav:hover { background: var(--pink-soft); }
+  .nav.prev { left: 10px; } .nav.next { right: 10px; }
+
+  /* taskbar */
+  .taskbar { position: fixed; left: 0; right: 0; bottom: 0; height: 46px; z-index: 10; display: flex; align-items: center; gap: 8px;
+    padding: 0 8px; background: linear-gradient(180deg, var(--lav-soft), var(--lav)); border-top: 2px solid var(--line); }
+  .start { display: flex; align-items: center; gap: 6px; border: 2px solid var(--line); background: #fff; padding: 4px 12px;
+    font: 700 14px var(--mono); box-shadow: 2px 2px 0 var(--line); cursor: pointer; }
+  .start b { color: var(--pink); font-size: 16px; }
+  .task { border: 2px solid var(--line); background: var(--pink-wash); padding: 5px 12px; font-size: 12px; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
+  .tray { margin-left: auto; display: flex; gap: 12px; align-items: center; border: 2px solid var(--line); background: #fff;
+    padding: 5px 12px; font-size: 12px; white-space: nowrap; }
+
+  .spark { position: fixed; pointer-events: none; color: #c3b2e8; font-size: 18px; z-index: 0; animation: tw 3s ease-in-out infinite; }
+  @keyframes tw { 50% { opacity: .3; transform: scale(.7) rotate(20deg); } }
+  @media (prefers-reduced-motion: reduce) { .spark { animation: none; } }
+
+  @media (max-width: 700px) {
+    .mast, .chips, main { padding-left: 16px; padding-right: 16px; }
+    .logo { font-size: 34px; } .logo small { font-size: 24px; }
+    .searchwin { width: 100%; } .searchwin input[type=search] { width: 100%; }
+    .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+    .copy { opacity: 1; }
+    .task:not(.main-task), .tray .count-tray { display: none; }
+  }
+</style>
+</head>
+<body>
+<span class="spark" style="top:22%;left:3%">✦</span>
+<span class="spark" style="top:60%;left:96%;animation-delay:1s">✧</span>
+<span class="spark" style="top:84%;left:6%;animation-delay:2s">✦</span>
+
+<header>
+  <div class="sticky-bar">
+    <div class="mast">
+      <h1 class="logo">screenshot<small>vault ♡</small></h1>
+      <span class="spacer"></span>
+      <div class="win">
+        <div class="titlebar pink"><span class="t">♡ search.exe</span><span class="ctl"><i>_</i><i>□</i><i>×</i></span></div>
+        <div class="searchwin">
+          <input type="search" id="q" placeholder="search app or date…  ( / )">
+          <label>auto-delete
+            <select id="retention">
+              <option value="0">never</option><option value="7">after 7 days</option>
+              <option value="30">after 30 days</option><option value="90">after 90 days</option>
+            </select>
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+</header>
+
+<main id="main"></main>
+
+<div class="selbar win">
+  <div class="titlebar pink"><span class="t">♡ selection</span><span class="ctl"><i class="x" id="selx">×</i></span></div>
+  <div class="body">
+    <span id="selcount"></span>
+    <button class="btn" id="selnone">clear</button>
+    <button class="btn danger" id="seldel">move to trash</button>
+  </div>
+</div>
+
+<div class="lb" id="lb">
+  <div class="win">
+    <div class="titlebar"><span class="t" id="lbname"></span><span class="ctl"><i>_</i><i>□</i><i class="x" id="lbx">×</i></span></div>
+    <div class="lb-tools">
+      <button class="btn primary" id="lbcopy">copy<kbd>C</kbd></button>
+      <button class="btn" id="lbreveal">show in finder</button>
+      <button class="btn" id="lbdel">trash<kbd>⌫</kbd></button>
+      <span class="spacer"></span>
+      <button class="btn" id="lbclose">close<kbd>esc</kbd></button>
+    </div>
+    <div class="lb-body" id="lbbody"></div>
+  </div>
+</div>
+
+<div class="toast win" id="toastwin" role="status">
+  <div class="titlebar pink"><span class="t">new message!</span><span class="ctl"><i>×</i></span></div>
+  <div class="body"><span class="heart">♥</span><span id="toast"></span></div>
+</div>
+
+<div class="taskbar">
+  <button class="start" id="start" title="Back to top"><b>✿</b>start</button>
+  <span class="task main-task">💾 screenshot vault.exe</span>
+  <span class="task" id="tasklb" hidden></span>
+  <span class="tray"><span class="count-tray" id="stats"></span><span id="clock"></span></span>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+let items = [], version = -1, appFilter = "", selected = new Set(), lbIndex = -1, visible = [];
+
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
+const enc = p => p.split("/").map(encodeURIComponent).join("/");
+const api = (path, body) => fetch(path, { method: "POST", headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body) }).then(r => r.json());
+const ctl = `<span class="ctl"><i>_</i><i>□</i><i>×</i></span>`;
+const bars = ["", "pink", "mint"];
+
+function toast(msg) {
+  $("#toast").textContent = msg; const t = $("#toastwin"); t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 2200);
+}
+function fmtSize(b) { return b > 1e9 ? (b/1e9).toFixed(1)+" GB" : b > 1e6 ? (b/1e6).toFixed(1)+" MB" : Math.round(b/1e3)+" KB"; }
+function dayLabel(d) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.round((today - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 864e5);
+  if (diff === 0) return "today";
+  if (diff === 1) return "yesterday";
+  return d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long",
+    year: d.getFullYear() === today.getFullYear() ? undefined : "numeric" }).toLowerCase();
+}
+
+async function load() {
+  const r = await fetch("/api/list").then(r => r.json());
+  items = r.items; version = r.version;
+  $("#stats").textContent = `${items.length} pic${items.length === 1 ? "" : "s"} · ${fmtSize(r.total)}`;
+  $("#retention").value = String(r.config.retention_days || 0);
+  render();
+}
+
+function render() {
+  const q = $("#q").value.trim().toLowerCase();
+  const counts = {};
+  items.forEach(i => { const a = i.app || "unknown"; counts[a] = (counts[a] || 0) + 1; });
+  const apps = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+  $("#chips").innerHTML = `<span class="lbl">filter ✧</span>` + ["", ...apps].map(a =>
+    `<button class="chip ${a === appFilter ? "on" : ""}" data-app="${esc(a)}">${a ? esc(a) : "all"}${a ? `<em>${counts[a]}</em>` : `<em>${items.length}</em>`}</button>`).join("");
+
+  visible = items.filter(i => (!appFilter || (i.app || "unknown") === appFilter) &&
+    (!q || (i.name + " " + i.app + " " + dayLabel(new Date(i.ts*1000))).toLowerCase().includes(q)));
+  if (!items.length) {
+    $("#main").innerHTML = `<div class="win empty"><div class="titlebar pink"><span class="t">♡ welcome babe!</span>${ctl}</div>
+      <div class="body"><div class="big">no pics yet</div>press <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>4</kbd> and it'll be on ur clipboard + right here ✨</div></div>`;
+    return;
+  }
+  if (!visible.length) {
+    $("#main").innerHTML = `<div class="win empty"><div class="titlebar"><span class="t">search.exe</span>${ctl}</div>
+      <div class="body"><div class="big">0 results</div>nothing matches that — try another search ♡</div></div>`;
+    return;
+  }
+
+  const groups = [];
+  visible.forEach((it, idx) => {
+    const d = new Date(it.ts * 1000), key = d.toDateString();
+    if (!groups.length || groups[groups.length-1].key !== key) groups.push({ key, d, list: [] });
+    groups[groups.length-1].list.push([it, idx]);
+  });
+  $("#main").innerHTML = groups.map((g, gi) => `
+    <section class="win day">
+      <div class="titlebar ${bars[gi % 3]}"><span class="t">♡ ${dayLabel(g.d)}</span>
+        <span class="count">${g.list.length} file${g.list.length === 1 ? "" : "s"}</span>${ctl}</div>
+      <div class="body"><div class="grid">
+      ${g.list.map(([it, idx]) => {
+        const time = new Date(it.ts*1000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toLowerCase();
+        const src = it.thumb ? `/thumbs/${enc(it.path)}.jpg` : it.kind === "image" ? `/files/${enc(it.path)}` : "";
+        const media = it.kind === "video"
+          ? `<video class="thumb" src="/files/${enc(it.path)}#t=0.1" preload="metadata" muted data-open="${idx}"></video>`
+          : `<img class="thumb" loading="lazy" src="${src}" alt="" data-open="${idx}">`;
+        return `<div class="card ${selected.has(it.path) ? "sel" : ""}" data-path="${esc(it.path)}">
+          ${media}
+          ${it.kind === "video" ? `<span class="badge">▶ rec</span>` : ""}
+          <div class="check" data-sel="${idx}">${selected.has(it.path) ? "♥" : ""}</div>
+          <button class="copy" data-copy="${idx}">copy ♡</button>
+          <div class="meta"><span class="app">${esc(it.app || "screenshot")}</span><span class="time">${time}</span></div>
+        </div>`; }).join("")}
+      </div></div>
+    </section>`).join("");
+  updateSel();
+}
+
+function updateSel() {
+  document.body.classList.toggle("selecting", selected.size > 0);
+  $("#selcount").textContent = `${selected.size} selected`;
+}
+
+async function copy(it) {
+  const r = await api("/api/copy", { path: it.path });
+  toast(r.ok ? (it.kind === "image" ? "copied 2 ur clipboard ✨" : "file copied ✨") : "couldn't copy :(");
+}
+async function del(paths) {
+  await api("/api/delete", { paths });
+  paths.forEach(p => selected.delete(p));
+  toast(paths.length === 1 ? "moved to trash 🗑" : `moved ${paths.length} to trash 🗑`);
+  await load();
+}
+
+function openLb(i) {
+  lbIndex = i; const it = visible[i]; if (!it) return closeLb();
+  $("#lbname").textContent = "♡ " + it.name;
+  $("#lbbody").innerHTML = `<button class="nav prev" id="prev" aria-label="Previous">‹</button>` +
+    (it.kind === "video" ? `<video src="/files/${enc(it.path)}" controls autoplay></video>` : `<img src="/files/${enc(it.path)}" alt="">`) +
+    `<button class="nav next" id="next" aria-label="Next">›</button>`;
+  $("#lb").classList.add("open");
+  const t = $("#tasklb"); t.hidden = false; t.textContent = "🖼 " + it.name;
+}
+function closeLb() { $("#lb").classList.remove("open"); $("#lbbody").innerHTML = ""; lbIndex = -1; $("#tasklb").hidden = true; }
+
+document.addEventListener("click", e => {
+  if (e.target === $("#lb")) return closeLb();
+  const t = e.target.closest("[data-copy],[data-open],[data-sel],[data-app],#prev,#next");
+  if (!t) return;
+  if (t.dataset.app !== undefined) { appFilter = t.dataset.app; render(); }
+  else if (t.dataset.copy) copy(visible[+t.dataset.copy]);
+  else if (t.dataset.sel) { const p = visible[+t.dataset.sel].path; selected.has(p) ? selected.delete(p) : selected.add(p); render(); }
+  else if (t.dataset.open) {
+    const idx = +t.dataset.open;
+    if (e.metaKey || selected.size) { const p = visible[idx].path; selected.has(p) ? selected.delete(p) : selected.add(p); render(); }
+    else openLb(idx);
+  }
+  else if (t.id === "prev") openLb(Math.max(0, lbIndex - 1));
+  else if (t.id === "next") openLb(Math.min(visible.length - 1, lbIndex + 1));
+});
+$("#lbclose").onclick = $("#lbx").onclick = closeLb;
+$("#lbcopy").onclick = () => copy(visible[lbIndex]);
+$("#lbreveal").onclick = () => api("/api/reveal", { path: visible[lbIndex].path });
+$("#lbdel").onclick = async () => { const i = lbIndex; await del([visible[i].path]); visible.length ? openLb(Math.min(i, visible.length-1)) : closeLb(); };
+$("#selnone").onclick = $("#selx").onclick = () => { selected.clear(); render(); };
+$("#seldel").onclick = () => { if (confirm(`Move ${selected.size} item(s) to Trash?`)) del([...selected]); };
+$("#start").onclick = () => window.scrollTo({ top: 0, behavior: "smooth" });
+$("#q").oninput = render;
+$("#retention").onchange = async e => {
+  const days = +e.target.value;
+  if (days && !confirm(`Screenshots older than ${days} days will be moved to the Trash automatically. Continue?`)) { load(); return; }
+  await api("/api/config", { retention_days: days });
+  toast(days ? `auto-delete after ${days} days` : "keeping everything ♡");
+};
+document.addEventListener("keydown", e => {
+  if (e.target.matches("input,select")) { if (e.key === "Escape") e.target.blur(); return; }
+  if (e.key === "/") { e.preventDefault(); $("#q").focus(); }
+  if (lbIndex < 0) { if (e.key === "Escape" && selected.size) { selected.clear(); render(); } return; }
+  if (e.key === "Escape") closeLb();
+  else if (e.key === "ArrowLeft") openLb(Math.max(0, lbIndex - 1));
+  else if (e.key === "ArrowRight") openLb(Math.min(visible.length - 1, lbIndex + 1));
+  else if (e.key.toLowerCase() === "c" || (e.metaKey && e.key === "c")) { e.preventDefault(); copy(visible[lbIndex]); }
+  else if (e.key === "Backspace" || e.key === "Delete") $("#lbdel").click();
+});
+
+const tickClock = () => $("#clock").textContent = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+tickClock(); setInterval(tickClock, 10000);
+
+// live refresh when a new screenshot lands
+setInterval(async () => {
+  try { const r = await fetch("/api/version").then(r => r.json()); if (r.version !== version) load(); } catch {}
+}, 1500);
+load();
+</script>
+</body>
+</html>
