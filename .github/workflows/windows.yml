@@ -152,4 +152,11 @@ jobs:
         if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" dist/${{ matrix.setup }}.exe --clobber
+        shell: pwsh
+        run: |
+          # Add the installer only if the release doesn't have it yet. Replacing a file deletes it
+          # first, which briefly breaks the download link for anyone clicking at that moment.
+          $tag = "${{ github.event.release.tag_name }}"
+          $have = gh release view $tag --json assets --jq '.assets[].name'
+          if ($have -contains "${{ matrix.setup }}.exe") { "Already attached; leaving it alone." }
+          else { gh release upload $tag dist/${{ matrix.setup }}.exe }

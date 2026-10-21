@@ -15,7 +15,10 @@ You get a Y2K-style gallery to browse them and a desktop widget that takes its c
 | | Download | Works on | Setup |
 |---|---|---|---|
 | 🍎 **Mac** | **[ScreenshotVault.dmg](https://github.com/aarushibhallawork-source/screenshotter/releases/latest/download/ScreenshotVault.dmg)** | macOS 13+, Apple silicon or Intel | [Mac instructions](#mac) |
-| 🪟 **Windows** | **[ScreenshotVault-Setup.exe](https://github.com/aarushibhallawork-source/screenshotter/releases/latest/download/ScreenshotVault-Setup.exe)** | Windows 10 or 11, 64-bit | [Windows instructions](#windows) |
+| 🪟 **Windows** | **[ScreenshotVault-Setup.exe](https://github.com/aarushibhallawork-source/screenshotter/releases/latest/download/ScreenshotVault-Setup.exe)**: same pink Y2K look as the Mac app | Windows 10 or 11, 64-bit | [Windows instructions](#windows) |
+| 🪟 **Windows XP edition** | **[ScreenshotVault-XP-Setup.exe](https://github.com/aarushibhallawork-source/screenshotter/releases/latest/download/ScreenshotVault-XP-Setup.exe)**: classic Windows XP look, or Black & White | Windows 10 or 11, 64-bit | [Windows instructions](#windows) |
+
+On Windows, pick one edition. Installing the other one later simply switches the look and keeps your screenshots.
 
 ## Mac
 
@@ -58,7 +61,8 @@ Opening the app again from Applications also opens the gallery.
 - **⌘-click** selects several screenshots so you can move them to the Trash together.
 - **Auto-delete** can move screenshots older than 7, 30 or 90 days to the Trash. It's off by default.
 
-**Desktop widget:** sits on your wallpaper, behind your apps and on every desktop. It shows your 6 latest screenshots.
+**Desktop widget:** sits on your wallpaper, behind your apps and on every desktop. It shows your latest screenshots.
+- **Resize it** by dragging the grip in its bottom-right corner. The bigger it is, the more screenshots it shows, and it remembers its size.
 - Click one to copy it. Right-click (two-finger click) one to copy, open, show in Finder or move it to the Trash.
 - Drag the widget by its title bar. Right-click the title bar for Reload, Open Gallery or Hide Widget.
 - Its colours come from your wallpaper and change within a few seconds of you changing wallpaper. If your wallpaper is in Downloads, Desktop or Documents, macOS asks once whether Screenshot Vault can read it. Click **Allow**.
@@ -81,7 +85,7 @@ Works on Windows 10 and 11 (64-bit).
 
 ### Install
 
-1. **[Download ScreenshotVault-Setup.exe](https://github.com/aarushibhallawork-source/screenshotter/releases/latest/download/ScreenshotVault-Setup.exe)** and open it.
+1. Download **[ScreenshotVault-Setup.exe](https://github.com/aarushibhallawork-source/screenshotter/releases/latest/download/ScreenshotVault-Setup.exe)** (pink, like the Mac app) or **[ScreenshotVault-XP-Setup.exe](https://github.com/aarushibhallawork-source/screenshotter/releases/latest/download/ScreenshotVault-XP-Setup.exe)** (Windows XP look), and open it.
 2. If Windows says **"Windows protected your PC"**, click **More info → Run anyway**. It shows this because the app isn't signed with a paid certificate.
 3. Click through the installer. No admin password is needed. Then click **Yes** on the welcome message to turn it on.
 
@@ -92,7 +96,10 @@ It starts by itself every time you sign in.
 - Take screenshots with **Win+PrtScn** or **Win+Shift+S**. Each one is copied to your clipboard, renamed by time and app, and moved out of `Pictures\Screenshots` into the **Screenshot Vault** folder on your Desktop, sorted into month and day folders. That folder is always there as a plain copy of everything you can open, back up or drag elsewhere.
   - For **Win+Shift+S** snips, make sure Snipping Tool saves them: **Snipping Tool → Settings → Automatically save screenshots**.
 - **The ♡ icon by the clock** (it may be under the **^** arrow): click it for the gallery, or right-click it for **Show Desktop Widget**, **Start with Windows**, **Move Screenshots Folder into Vault**, **Open Vault Folder** and **Turn Off…**.
-- **Themes:** the Windows version has its own looks. It's **Windows XP** by default (blue title bars, green Start button), or switch to **Black & White** from **♡ → Theme**. The gallery and the desktop widget both follow your choice.
+- **Two editions:**
+  - **ScreenshotVault-Setup.exe** looks exactly like the Mac app: the pink Y2K gallery, and a widget that takes its colours from your wallpaper.
+  - **ScreenshotVault-XP-Setup.exe** looks like **Windows XP** (blue title bars, green Start button). You can switch it to **Black & White** from **♡ → Theme**.
+- **Desktop widget:** resize it by dragging the grip in its bottom-right corner, and it shows more screenshots as it grows. Drag it around by its title bar.
 - The gallery and widget work like on Mac. Use **Ctrl-click** to select several screenshots, and deleted screenshots go to the **Recycle Bin**.
 - Opening Screenshot Vault from the Start menu opens the gallery. When it starts by itself at sign-in it stays quiet in the tray.
 
@@ -112,9 +119,9 @@ You need Apple's Command Line Tools (`xcode-select --install`). Then:
 
 That produces `build/Screenshot Vault.app` (Apple silicon + Intel) and `dist/ScreenshotVault.dmg`.
 
-**Windows:** GitHub builds it (`.github/workflows/windows.yml`) on every change to `windows/` or `web/`. It runs a self-test on a real Windows machine and produces `ScreenshotVault-Setup.exe`. To build locally on Windows, you need the .NET 8 SDK: `dotnet publish windows/ScreenshotVault.csproj -c Release`.
+**Windows:** GitHub builds both editions (`.github/workflows/windows.yml`) on every change to `windows/` or `web/`. It runs a self-test and takes screenshots of the running app on a real Windows machine, and produces `ScreenshotVault-Setup.exe` and `ScreenshotVault-XP-Setup.exe`. To build locally on Windows, you need the .NET 8 SDK: `dotnet publish windows/ScreenshotVault.csproj -c Release`, adding `-p:Edition=XP` for the XP edition.
 
-**Publishing a release:** create a GitHub release and attach `ScreenshotVault.dmg`. The Windows installer is attached automatically by the workflow. Keep both file names, so the download links above keep working.
+**Publishing a release:** create a GitHub release and attach `ScreenshotVault.dmg`. Both Windows installers are attached automatically by the workflow. Keep both file names, so the download links above keep working.
 
 | Path | What it is |
 |---|---|
