@@ -1,10 +1,10 @@
-// Screenshot Vault desktop widget: a frameless window pinned to the desktop
-// (above the wallpaper, below your apps, on every Space) showing localhost:7333/widget.
+// Desktop widget: a frameless window pinned to the desktop (above the wallpaper,
+// below your apps, on every Space) showing localhost:7333/widget, themed from the wallpaper.
 import Cocoa
 import WebKit
 
 let widgetURL = URL(string: "http://localhost:7333/widget")!
-let size = NSSize(width: 330, height: 380)
+let widgetSize = NSSize(width: 330, height: 380)
 
 // MARK: - Wallpaper palette
 
@@ -101,17 +101,30 @@ final class DragHandle: NSView {
     }
 }
 
-final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
+final class WidgetController: NSObject, WKNavigationDelegate {
     var window: WidgetWindow!
     var web: ClickThroughWebView!
     var theme: [String: String]?
     var wallpaperKey = ""
+    var onOpenGallery: () -> Void = {}
+    var onHide: () -> Void = {}
+    private var started = false
 
-    func applicationDidFinishLaunching(_ note: Notification) {
+    var isVisible: Bool { window?.isVisible ?? false }
+
+    func show() {
+        if !started { build(); started = true }
+        window.orderFront(nil)
+    }
+
+    func hide() { window?.orderOut(nil) }
+
+    private func build() {
         let screen = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
-        let origin = NSPoint(x: screen.maxX - size.width - 24, y: screen.maxY - size.height - 24)
-        window = WidgetWindow(contentRect: NSRect(origin: origin, size: size),
+        let origin = NSPoint(x: screen.maxX - widgetSize.width - 24, y: screen.maxY - widgetSize.height - 24)
+        window = WidgetWindow(contentRect: NSRect(origin: origin, size: widgetSize),
                               styleMask: [.borderless], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
         window.isOpaque = false
         window.backgroundColor = .clear
         window.hasShadow = false
@@ -119,49 +132,54 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         window.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenNone]
         window.setFrameAutosaveName("ScreenshotVaultWidget")
 
-        web = ClickThroughWebView(frame: NSRect(origin: .zero, size: size))
+        web = ClickThroughWebView(frame: NSRect(origin: .zero, size: widgetSize))
         web.autoresizingMask = [.width, .height]
         web.setValue(false, forKey: "drawsBackground")
         web.navigationDelegate = self
 
-        let handle = DragHandle(frame: NSRect(x: 4, y: size.height - 32, width: size.width - 80, height: 28))
+        let handle = DragHandle(frame: NSRect(x: 4, y: widgetSize.height - 32, width: widgetSize.width - 80, height: 28))
         handle.autoresizingMask = [.minYMargin, .width]
         let menu = NSMenu()
         menu.addItem(withTitle: "Reload", action: #selector(reload), keyEquivalent: "").target = self
-        menu.addItem(withTitle: "Open Vault", action: #selector(openVault), keyEquivalent: "").target = self
+        menu.addItem(withTitle: "Open Gallery", action: #selector(openVault), keyEquivalent: "").target = self
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Quit Widget", action: #selector(quit), keyEquivalent: "").target = self
+        menu.addItem(withTitle: "Hide Widget", action: #selector(hideFromMenu), keyEquivalent: "").target = self
         handle.menu = menu
 
-        let root = NSView(frame: NSRect(origin: .zero, size: size))
+        let root = NSView(frame: NSRect(origin: .zero, size: widgetSize))
         root.addSubview(web)
         root.addSubview(handle)
         window.contentView = root
-        window.orderFront(nil)
 
         load()
         refreshTheme()
         // macOS has no "wallpaper changed" event, so check cheaply every few seconds,
         // plus whenever the Space or display setup changes.
         Timer.scheduledTimer(withTimeInterval: 4, repeats: true) { _ in self.refreshTheme() }
-        for name in [NSWorkspace.activeSpaceDidChangeNotification] {
-            NSWorkspace.shared.notificationCenter.addObserver(forName: name, object: nil, queue: .main) { _ in self.refreshTheme() }
-        }
+        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification,
+                                                          object: nil, queue: .main) { _ in self.refreshTheme() }
         NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification,
                                                object: nil, queue: .main) { _ in self.refreshTheme() }
     }
 
+    private var themeInFlight = false
+
     func refreshTheme() {
-        guard let screen = window.screen ?? NSScreen.main,
+        guard !themeInFlight, let screen = window.screen ?? NSScreen.main,
               let url = NSWorkspace.shared.desktopImageURL(for: screen) else { return }
-        let mtime = (try? FileManager.default.attributesOfItem(atPath: url.path)[.modificationDate] as? Date)?
-            .timeIntervalSince1970 ?? 0
-        let key = "\(url.path)|\(mtime)"
-        guard key != wallpaperKey else { return }
-        wallpaperKey = key
+        themeInFlight = true
+        let lastKey = wallpaperKey
+        // All file access off the main thread: if the wallpaper is in a protected folder,
+        // macOS blocks the reading thread until the access prompt is answered.
         DispatchQueue.global(qos: .utility).async {
-            let t = wallpaperTheme(url)
+            let mtime = (try? FileManager.default.attributesOfItem(atPath: url.path)[.modificationDate] as? Date)?
+                .timeIntervalSince1970 ?? 0
+            let key = "\(url.path)|\(mtime)"
+            let t = key == lastKey ? nil : wallpaperTheme(url)
             DispatchQueue.main.async {
+                self.themeInFlight = false
+                guard key != lastKey else { return }
+                self.wallpaperKey = key
                 guard let t = t else { return }   // unreadable wallpaper: keep current colours
                 self.theme = t
                 self.applyTheme()
@@ -189,12 +207,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     func webViewWebContentProcessDidTerminate(_ w: WKWebView) { load() }
 
     @objc func reload() { load() }
-    @objc func openVault() { NSWorkspace.shared.open(URL(string: "http://localhost:7333/")!) }
-    @objc func quit() { exit(0) }
+    @objc func openVault() { onOpenGallery() }
+    @objc func hideFromMenu() { hide(); onHide() }
 }
-
-let app = NSApplication.shared
-let delegate = AppDelegate()
-app.delegate = delegate
-app.setActivationPolicy(.accessory)
-app.run()
