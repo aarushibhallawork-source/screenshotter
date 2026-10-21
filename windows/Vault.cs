@@ -14,8 +14,9 @@ namespace ScreenshotVault;
 
 static class Paths
 {
-    public static string Root = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ScreenshotVault");
+    // SCREENSHOTVAULT_ROOT lets the automated GitHub check run the app against a test vault.
+    public static string Root = Environment.GetEnvironmentVariable("SCREENSHOTVAULT_ROOT") is { Length: > 0 } r ? r
+        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ScreenshotVault");
     public static string Archive => Path.Combine(Root, "archive");
     public static string Thumbs => Path.Combine(Root, "thumbs");
     public static string Config => Path.Combine(Root, "config.json");

@@ -31,7 +31,7 @@ static class Web
     }
 }
 
-/// Small borderless window that sits on the desktop, below every other window.
+/// Small borderless window that sits on the desktop: above the wallpaper, below your apps.
 sealed class WidgetForm : Form
 {
     readonly WebView2 _web = new() { Dock = DockStyle.Fill };
@@ -71,17 +71,35 @@ sealed class WidgetForm : Form
         get { var cp = base.CreateParams; cp.ExStyle |= 0x80; return cp; }
     }
 
-    // Keep the widget behind other windows even when it's clicked.
+    // Appearing on the desktop shouldn't steal focus from what you're doing.
+    protected override bool ShowWithoutActivation => true;
+
+    protected override void OnHandleCreated(EventArgs e)
+    {
+        base.OnHandleCreated(e);
+        // Belong to the desktop window: owned windows always sit just above their owner, so the
+        // widget stays on top of the wallpaper but under your apps (and survives Win+D).
+        var desktop = Native.GetShellWindow();
+        if (desktop != IntPtr.Zero) Native.SetWindowLongPtr(Handle, Native.GWLP_HWNDPARENT, desktop);
+        Vault.Log($"widget window created, desktop owner {(desktop != IntPtr.Zero ? "set" : "not found")}");
+    }
+
+    // Clicking the widget would normally bring it in front of other windows; keep it where it is.
     protected override void WndProc(ref Message m)
     {
-        if (m.Msg == Native.WM_WINDOWPOSCHANGING)
+        if (m.Msg == Native.WM_WINDOWPOSCHANGING && Visible)
         {
             var wp = Marshal.PtrToStructure<Native.WINDOWPOS>(m.LParam);
-            wp.hwndInsertAfter = Native.HWND_BOTTOM;
-            wp.flags &= ~0x4u; // SWP_NOZORDER
+            wp.flags |= Native.SWP_NOZORDER;
             Marshal.StructureToPtr(wp, m.LParam, false);
         }
         base.WndProc(ref m);
+    }
+
+    protected override void OnShown(EventArgs e)
+    {
+        base.OnShown(e);
+        Vault.Log($"widget shown at {Bounds}, visible {Visible}");
     }
 
     async Task Init()

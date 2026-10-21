@@ -41,7 +41,7 @@ sealed class TrayApp : ApplicationContext
     WidgetForm? _widget;
     GalleryForm? _gallery;
 
-    public TrayApp()
+    public TrayApp(bool openGallery = false)
     {
         Vault.Shared.Ui = SynchronizationContext.Current;
         Server.CurrentTheme = () => _settings.Theme == "bw" ? "bw" : "xp";
@@ -64,6 +64,7 @@ sealed class TrayApp : ApplicationContext
         {
             Vault.Shared.StartWatching();
             if (_settings.WidgetOn) ShowWidget();
+            if (openGallery) ShowGallery();
         }
         else
         {
@@ -235,7 +236,7 @@ static class Program
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
         SynchronizationContext.SetSynchronizationContext(new WindowsFormsSynchronizationContext());
-        Application.Run(new TrayApp());
+        Application.Run(new TrayApp(args.Contains("--open-gallery")));
         GC.KeepAlive(mutex);
         return 0;
     }

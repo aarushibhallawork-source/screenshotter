@@ -33,6 +33,74 @@ jobs:
           Get-Content (Join-Path $dir "selftest.txt")
           if ($p.ExitCode -ne 0) { throw "Self-test failed (exit code $($p.ExitCode))" }
 
+      # Runs the real app (tray, widget, gallery) on GitHub's Windows desktop and photographs the
+      # screen in both themes, so the look can be checked without a Windows PC.
+      - name: Run the app and take screenshots
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          $exe = Resolve-Path build/windows/ScreenshotVault.exe
+          $shots = Join-Path $env:RUNNER_TEMP "screens"
+          New-Item -ItemType Directory -Force $shots | Out-Null
+          $inbox = Join-Path ([Environment]::GetFolderPath("MyPictures")) "Screenshots"
+          New-Item -ItemType Directory -Force $inbox | Out-Null
+
+          function Snap($name) {
+            $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+            $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+            $g = [System.Drawing.Graphics]::FromImage($bmp)
+            $g.CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+            $bmp.Save((Join-Path $shots "$name.png"))
+            $g.Dispose(); $bmp.Dispose()
+          }
+
+          # Fake screenshots, saved where Win+PrtScn would put them, for the app to pick up.
+          function Seed {
+            $colors = @("#3A6EA5", "#C0504D", "#9BBB59", "#F79646")
+            for ($i = 0; $i -lt 4; $i++) {
+              $bmp = New-Object System.Drawing.Bitmap 960, 600
+              $g = [System.Drawing.Graphics]::FromImage($bmp)
+              $g.Clear([System.Drawing.ColorTranslator]::FromHtml($colors[$i]))
+              $font = New-Object System.Drawing.Font "Segoe UI", 48
+              $g.DrawString("Test screenshot $($i + 1)", $font, [System.Drawing.Brushes]::White, 60, 240)
+              $bmp.Save((Join-Path $inbox ("Screenshot 2026-10-21 1{0}1500.png" -f $i)))
+              $g.Dispose(); $bmp.Dispose()
+            }
+          }
+
+          foreach ($theme in "xp", "bw") {
+            $root = Join-Path $env:RUNNER_TEMP "vault-$theme"
+            New-Item -ItemType Directory -Force $root | Out-Null
+            "{""SetupDone"":true,""WidgetOn"":true,""Theme"":""$theme""}" | Set-Content (Join-Path $root "settings.json")
+            $env:SCREENSHOTVAULT_ROOT = $root
+            Seed
+
+            $app = Start-Process $exe -PassThru
+            Start-Sleep 20
+            Snap "$theme-1-widget"
+            $np = Start-Process notepad -WindowStyle Maximized -PassThru
+            Start-Sleep 3
+            Snap "$theme-2-behind-notepad"
+            Stop-Process $np -Force -ErrorAction SilentlyContinue
+            Stop-Process $app -Force
+            Start-Sleep 3
+
+            $app = Start-Process $exe -ArgumentList "--open-gallery" -PassThru
+            Start-Sleep 20
+            Snap "$theme-3-gallery"
+            Stop-Process $app -Force
+            Start-Sleep 3
+            Copy-Item (Join-Path $root "vault.log") (Join-Path $shots "$theme-vault.log") -ErrorAction SilentlyContinue
+          }
+          Get-ChildItem $shots | Format-Table Name, Length
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: app-screenshots
+          path: ${{ runner.temp }}/screens/
+
       - name: Build installer
         shell: pwsh
         run: |

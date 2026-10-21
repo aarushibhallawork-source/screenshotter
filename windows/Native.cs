@@ -14,11 +14,14 @@ static class Native
     // Dragging a borderless window, and keeping the widget below other windows.
     [DllImport("user32.dll")] public static extern bool ReleaseCapture();
     [DllImport("user32.dll")] public static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
-    [DllImport("user32.dll")]
-    public static extern bool SetWindowPos(IntPtr hWnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
     public const int WM_NCLBUTTONDOWN = 0xA1, HTCAPTION = 2, WM_WINDOWPOSCHANGING = 0x46;
-    public static readonly IntPtr HWND_BOTTOM = new(1);
-    public const uint SWP_NOSIZE = 0x1, SWP_NOMOVE = 0x2, SWP_NOACTIVATE = 0x10;
+    public const uint SWP_NOZORDER = 0x4;
+
+    // The desktop (wallpaper + icons) window, and making the widget belong to it.
+    [DllImport("user32.dll")] public static extern IntPtr GetShellWindow();
+    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
+    public static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int index, IntPtr value);
+    public const int GWLP_HWNDPARENT = -8;
 
     [StructLayout(LayoutKind.Sequential)]
     public struct WINDOWPOS { public IntPtr hwnd, hwndInsertAfter; public int x, y, cx, cy; public uint flags; }
