@@ -1,22 +1,24 @@
 # Screenshot Vault ♡
 
-Stop screenshots from piling up on your Mac's Desktop.
+Stop screenshots from piling up on your Desktop. For **Mac** and **Windows**.
 
-Take a screenshot (⌘⇧3, ⌘⇧4 or ⌘⇧5) and it is:
+Take a screenshot and it is:
 
 1. **copied to your clipboard** straight away, ready to paste,
 2. **renamed** to something readable like `2026-10-19 at 14.32.05 - Figma.png` (the time plus the app you were in),
-3. **filed by date** in your vault, not on the Desktop.
+3. **filed by date** in your vault, not on the Desktop or in a messy Screenshots folder.
 
 You get a Y2K-style gallery to browse them and a desktop widget that takes its colours from your wallpaper.
 
-## Install (no Terminal needed)
+## Mac
+
+### Install (no Terminal needed)
 
 1. **[Download ScreenshotVault.dmg](https://github.com/aarushibhallawork-source/screenshotter/releases/latest/download/ScreenshotVault.dmg)**.
 2. Open it, and drag **Screenshot Vault** onto the **Applications** folder.
 3. Open **Screenshot Vault** from Applications, and click **Turn It On**.
 
-### "Apple could not verify…" the first time you open it
+#### "Apple could not verify…" the first time you open it
 
 Screenshot Vault isn't signed with a paid Apple developer certificate, so macOS asks you to confirm once.
 
@@ -31,7 +33,7 @@ After that it opens normally, and it starts by itself every time you log in.
 
 Works on Apple silicon and Intel Macs running macOS 13 or later.
 
-## Using it
+### Using it
 
 **The ♡ icon in your menu bar** has everything:
 - **Open Gallery**: browse your screenshots.
@@ -54,7 +56,7 @@ Opening the app again from Applications also opens the gallery.
 - Drag the widget by its title bar. Right-click the title bar for Reload, Open Gallery or Hide Widget.
 - Its colours come from your wallpaper and change within a few seconds of you changing wallpaper. If your wallpaper is in Downloads, Desktop or Documents, macOS asks once whether Screenshot Vault can read it. Click **Allow**.
 
-## Good to know
+### Good to know
 
 - Screenshots live in `~/Library/Application Support/ScreenshotVault/`, out of sight but still on your Mac. Use Auto-delete if you'd like them cleared automatically.
 - The floating thumbnail in the screen corner is turned off. It delays saving by about 5 seconds, so turning it off is what makes the clipboard copy instant.
@@ -62,9 +64,33 @@ Opening the app again from Applications also opens the gallery.
 - Nothing leaves your Mac. The gallery runs on a private local address that only your Mac can reach.
 - If you quit the app, new screenshots wait in the vault's inbox and are filed as soon as you open it again.
 
-## Uninstall
+### Uninstall
 
 Choose **♡ → Turn Off & Restore Desktop Screenshots…**, then drag Screenshot Vault from Applications to the Trash. Your vault folder is kept, so delete it as well if you don't want the screenshots any more.
+
+## Windows
+
+Works on Windows 10 and 11 (64-bit).
+
+### Install
+
+1. **[Download ScreenshotVault-Setup.exe](https://github.com/aarushibhallawork-source/screenshotter/releases/latest/download/ScreenshotVault-Setup.exe)** and open it.
+2. If Windows says **"Windows protected your PC"**, click **More info → Run anyway**. It shows this because the app isn't signed with a paid certificate.
+3. Click through the installer. No admin password is needed. Then click **Yes** on the welcome message to turn it on.
+
+It starts by itself every time you sign in.
+
+### Using it
+
+- Take screenshots with **Win+PrtScn** or **Win+Shift+S**. Each one is copied to your clipboard, renamed by time and app, and moved out of `Pictures\Screenshots` into the vault.
+  - For **Win+Shift+S** snips, make sure Snipping Tool saves them: **Snipping Tool → Settings → Automatically save screenshots**.
+- **The ♡ icon by the clock** (it may be under the **^** arrow): click it for the gallery, or right-click it for **Show Desktop Widget**, **Start with Windows**, **Move Screenshots Folder into Vault**, **Open Vault Folder** and **Turn Off…**.
+- The gallery and the desktop widget work the same as on Mac. Use **Ctrl-click** to select several screenshots, and anything moved to the Trash goes to the **Recycle Bin**.
+- Your vault lives in `%LOCALAPPDATA%\ScreenshotVault`.
+
+### Uninstall
+
+Open **Settings → Apps → Installed apps → Screenshot Vault → Uninstall**. Your vault folder is kept.
 
 ---
 
@@ -76,7 +102,11 @@ You need Apple's Command Line Tools (`xcode-select --install`). Then:
 ./build.sh
 ```
 
-That produces `build/Screenshot Vault.app` (Apple silicon + Intel) and `dist/ScreenshotVault.dmg`. To publish, create a GitHub release and attach the `.dmg`, keeping the name `ScreenshotVault.dmg` so the download link above keeps working.
+That produces `build/Screenshot Vault.app` (Apple silicon + Intel) and `dist/ScreenshotVault.dmg`.
+
+**Windows:** GitHub builds it (`.github/workflows/windows.yml`) on every change to `windows/` or `web/`. It runs a self-test on a real Windows machine and produces `ScreenshotVault-Setup.exe`. To build locally on Windows, you need the .NET 8 SDK: `dotnet publish windows/ScreenshotVault.csproj -c Release`.
+
+**Publishing a release:** create a GitHub release and attach `ScreenshotVault.dmg`. The Windows installer is attached automatically by the workflow. Keep both file names, so the download links above keep working.
 
 | Path | What it is |
 |---|---|
@@ -86,3 +116,4 @@ That produces `build/Screenshot Vault.app` (Apple silicon + Intel) and `dist/Scr
 | `app/Widget.swift` | Desktop widget window and wallpaper colour extraction |
 | `web/gallery.html`, `web/widget.html` | The gallery and widget pages |
 | `scripts/make-icon.swift` | Draws the app icon |
+| `windows/` | The Windows app (C#, WebView2): `Vault.cs`, `Server.cs`, `Theme.cs`, `Windows.cs`, `App.cs`, plus the installer script |
