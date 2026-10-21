@@ -54,6 +54,8 @@
   .menu { position: fixed; z-index: 50; min-width: 168px; display: none; background: var(--paper); border: 2px solid var(--ink);
     border-radius: 5px; box-shadow: 0 0 0 2px var(--cream), 4px 4px 0 2px var(--ink); padding: 4px; font: 12px var(--mono); }
   .menu.open { display: block; }
+  html.native body { padding: 0; }
+  html.native .win { border: 0; border-radius: 0; box-shadow: none; }
   .menu button { display: flex; width: 100%; align-items: center; gap: 8px; border: 0; background: none; color: var(--ink);
     font: inherit; text-align: left; padding: 5px 8px; border-radius: 3px; cursor: pointer; }
   .menu button:hover { background: var(--pink); }
@@ -72,12 +74,23 @@
 <div class="menu" id="menu" role="menu">
   <button data-act="copy">♡ copy</button>
   <button data-act="open">↗ open</button>
-  <button data-act="reveal">⌕ show in finder</button>
+  <button data-act="reveal" id="revealbtn">⌕ show in finder</button>
   <hr>
   <button data-act="trash" class="danger">✕ move to trash</button>
 </div>
 <script>
 const $ = s => document.querySelector(s);
+const isWin = navigator.userAgent.includes("Windows");
+// Inside the Windows app the window itself provides the frame, and the title bar drags it.
+const host = window.chrome && window.chrome.webview;
+if (host) {
+  document.documentElement.classList.add("native");
+  document.addEventListener("DOMContentLoaded", () => {
+    const bar = document.querySelector(".titlebar");
+    bar.addEventListener("mousedown", e => { if (e.button === 0) host.postMessage("drag"); });
+    bar.addEventListener("contextmenu", e => { e.preventDefault(); e.stopPropagation(); host.postMessage("menu"); });
+  });
+}
 // Called by the desktop app with colours sampled from the current wallpaper.
 window.applyTheme = t => { for (const [k, v] of Object.entries(t)) document.documentElement.style.setProperty("--" + k, v); };
 const SHOW = 6;
@@ -109,7 +122,7 @@ async function load() {
       <span class="hint">copy ♡</span>
       <div class="cap"><b>${esc(it.app || "screenshot")}</b><span>${when(it.ts)}</span></div>
     </div>`).join("")
-    : `<div class="empty"><div><b>no pics yet</b>press ⌘⇧4 ✨</div></div>`;
+    : `<div class="empty"><div><b>no pics yet</b>press ${isWin ? "win+shift+S" : "⌘⇧4"} ✨</div></div>`;
 }
 
 let flashTimer;
@@ -126,6 +139,7 @@ $("#grid").addEventListener("click", async e => {
 // right-click (two-finger click) menu
 let menuIdx = -1;
 const menu = $("#menu");
+if (isWin) $("#revealbtn").textContent = "⌕ show in explorer";
 function closeMenu() { menu.classList.remove("open"); document.querySelectorAll(".pic.menu-on").forEach(p => p.classList.remove("menu-on")); menuIdx = -1; }
 function setTitle(msg) {
   const t = $("#title"); t.textContent = msg; t.classList.add("flash");

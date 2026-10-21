@@ -230,6 +230,7 @@
 
 <script>
 const $ = s => document.querySelector(s);
+const isWin = navigator.userAgent.includes("Windows");
 let items = [], version = -1, appFilter = "", selected = new Set(), lbIndex = -1, visible = [];
 
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
@@ -273,7 +274,7 @@ function render() {
     (!q || (i.name + " " + i.app + " " + dayLabel(new Date(i.ts*1000))).toLowerCase().includes(q)));
   if (!items.length) {
     $("#main").innerHTML = `<div class="win empty"><div class="titlebar pink"><span class="t">♡ welcome babe!</span>${ctl}</div>
-      <div class="body"><div class="big">no pics yet</div>press <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>4</kbd> and it'll be on ur clipboard + right here ✨</div></div>`;
+      <div class="body"><div class="big">no pics yet</div>press ${isWin ? "<kbd>win</kbd> <kbd>shift</kbd> <kbd>S</kbd>" : "<kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>4</kbd>"} and it'll be on ur clipboard + right here ✨</div></div>`;
     return;
   }
   if (!visible.length) {
@@ -347,12 +348,13 @@ document.addEventListener("click", e => {
   else if (t.dataset.sel) { const p = visible[+t.dataset.sel].path; selected.has(p) ? selected.delete(p) : selected.add(p); render(); }
   else if (t.dataset.open) {
     const idx = +t.dataset.open;
-    if (e.metaKey || selected.size) { const p = visible[idx].path; selected.has(p) ? selected.delete(p) : selected.add(p); render(); }
+    if (e.metaKey || e.ctrlKey || selected.size) { const p = visible[idx].path; selected.has(p) ? selected.delete(p) : selected.add(p); render(); }
     else openLb(idx);
   }
   else if (t.id === "prev") openLb(Math.max(0, lbIndex - 1));
   else if (t.id === "next") openLb(Math.min(visible.length - 1, lbIndex + 1));
 });
+if (isWin) $("#lbreveal").textContent = "show in explorer";
 $("#lbclose").onclick = $("#lbx").onclick = closeLb;
 $("#lbcopy").onclick = () => copy(visible[lbIndex]);
 $("#lbreveal").onclick = () => api("/api/reveal", { path: visible[lbIndex].path });
@@ -374,7 +376,7 @@ document.addEventListener("keydown", e => {
   if (e.key === "Escape") closeLb();
   else if (e.key === "ArrowLeft") openLb(Math.max(0, lbIndex - 1));
   else if (e.key === "ArrowRight") openLb(Math.min(visible.length - 1, lbIndex + 1));
-  else if (e.key.toLowerCase() === "c" || (e.metaKey && e.key === "c")) { e.preventDefault(); copy(visible[lbIndex]); }
+  else if (e.key.toLowerCase() === "c" || ((e.metaKey || e.ctrlKey) && e.key === "c")) { e.preventDefault(); copy(visible[lbIndex]); }
   else if (e.key === "Backspace" || e.key === "Delete") $("#lbdel").click();
 });
 

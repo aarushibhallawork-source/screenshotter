@@ -1,0 +1,54 @@
+# Builds the Windows app on a real Windows machine, runs its self-test, and packages the installer.
+# On a published release, the installer is attached to it automatically.
+name: Windows build
+
+on:
+  push:
+    paths: ["windows/**", "web/**", ".github/workflows/windows.yml"]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build app
+        run: dotnet publish windows/ScreenshotVault.csproj -c Release -o build/windows
+
+      - name: Self-test on Windows
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP "selftest"
+          $p = Start-Process -FilePath build/windows/ScreenshotVault.exe -ArgumentList "--selftest", "`"$dir`"" -Wait -PassThru
+          Get-Content (Join-Path $dir "selftest.txt")
+          if ($p.ExitCode -ne 0) { throw "Self-test failed (exit code $($p.ExitCode))" }
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup --no-progress -y; }
+          $version = if ("${{ github.event_name }}" -eq "release") { "${{ github.event.release.tag_name }}".TrimStart("v") } else { "1.0.0" }
+          & $iscc "/DAppVersion=$version" windows/installer.iss
+          if ($LASTEXITCODE -ne 0) { throw "Installer build failed" }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ScreenshotVault-Setup
+          path: dist/ScreenshotVault-Setup.exe
+
+      - name: Attach to release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" dist/ScreenshotVault-Setup.exe --clobber
