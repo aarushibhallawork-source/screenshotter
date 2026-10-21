@@ -10,7 +10,7 @@
     <RootNamespace>ScreenshotVault</RootNamespace>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <Product>Screenshot Vault</Product>
     <Company>Screenshot Vault</Company>
     <!-- Lets the project build on non-Windows machines too (the app still only runs on Windows). -->
@@ -21,6 +21,12 @@
     <PublishSingleFile>true</PublishSingleFile>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+  </PropertyGroup>
+
+  <!-- Edition: Y2K (default, same look as the Mac app) or XP. See Edition.cs. -->
+  <PropertyGroup>
+    <Edition Condition="'$(Edition)' == ''">Y2K</Edition>
+    <DefineConstants Condition="'$(Edition)' == 'XP'">$(DefineConstants);EDITION_XP</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

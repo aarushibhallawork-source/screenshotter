@@ -4,10 +4,22 @@
 #ifndef AppVersion
   #define AppVersion "1.0.0"
 #endif
+; Edition: Y2K (default, same look as the Mac app) or XP. Both share one AppId, so installing
+; one edition replaces the other and keeps your screenshots and settings.
+#ifndef Edition
+  #define Edition "Y2K"
+#endif
+#if Edition == "XP"
+  #define SetupName "ScreenshotVault-XP-Setup"
+  #define DisplayName "Screenshot Vault (Windows XP edition)"
+#else
+  #define SetupName "ScreenshotVault-Setup"
+  #define DisplayName "Screenshot Vault"
+#endif
 
 [Setup]
 AppId={{6F1C2B9E-5A47-4C1D-9B8E-3D2F7A6C5E10}
-AppName=Screenshot Vault
+AppName={#DisplayName}
 AppVersion={#AppVersion}
 AppPublisher=Screenshot Vault
 AppPublisherURL=https://github.com/aarushibhallawork-source/screenshotter
@@ -17,7 +29,7 @@ DisableProgramGroupPage=yes
 DisableDirPage=yes
 PrivilegesRequired=lowest
 OutputDir=..\dist
-OutputBaseFilename=ScreenshotVault-Setup
+OutputBaseFilename={#SetupName}
 SetupIconFile=app.ico
 UninstallDisplayIcon={app}\ScreenshotVault.exe
 Compression=lzma2/max
@@ -28,7 +40,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 CloseApplications=force
 
 [Files]
-Source: "..\build\windows\ScreenshotVault.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\build\windows-{#Edition}\ScreenshotVault.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{userprograms}\Screenshot Vault"; Filename: "{app}\ScreenshotVault.exe"

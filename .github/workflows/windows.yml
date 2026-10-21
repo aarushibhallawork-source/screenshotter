@@ -1,5 +1,8 @@
-# Builds the Windows app on a real Windows machine, runs its self-test, and packages the installer.
-# On a published release, the installer is attached to it automatically.
+# Builds both Windows editions on a real Windows machine, runs their self-tests, photographs the
+# running app, and packages the installers:
+#   Y2K → ScreenshotVault-Setup.exe     (same look as the Mac app)
+#   XP  → ScreenshotVault-XP-Setup.exe  (Windows XP / Black & White)
+# On a published release, both installers are attached to it automatically.
 name: Windows build
 
 on:
@@ -15,6 +18,17 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - edition: Y2K
+            setup: ScreenshotVault-Setup
+            themes: "y2k"
+          - edition: XP
+            setup: ScreenshotVault-XP-Setup
+            themes: "xp,bw"
+    name: build (${{ matrix.edition }})
     steps:
       - uses: actions/checkout@v4
 
@@ -23,24 +37,25 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Build app
-        run: dotnet publish windows/ScreenshotVault.csproj -c Release -o build/windows
+        run: dotnet publish windows/ScreenshotVault.csproj -c Release -p:Edition=${{ matrix.edition }} -o build/windows-${{ matrix.edition }}
 
       - name: Self-test on Windows
         shell: pwsh
         run: |
           $dir = Join-Path $env:RUNNER_TEMP "selftest"
-          $p = Start-Process -FilePath build/windows/ScreenshotVault.exe -ArgumentList "--selftest", "`"$dir`"" -Wait -PassThru
+          $p = Start-Process -FilePath build/windows-${{ matrix.edition }}/ScreenshotVault.exe -ArgumentList "--selftest", "`"$dir`"" -Wait -PassThru
           Get-Content (Join-Path $dir "selftest.txt")
           if ($p.ExitCode -ne 0) { throw "Self-test failed (exit code $($p.ExitCode))" }
 
       # Runs the real app (tray, widget, gallery) on GitHub's Windows desktop and photographs the
-      # screen in both themes, so the look can be checked without a Windows PC.
+      # screen, so the look can be checked without a Windows PC. Also drags the widget's resize grip.
       - name: Run the app and take screenshots
         shell: pwsh
         continue-on-error: true
         run: |
           Add-Type -AssemblyName System.Windows.Forms, System.Drawing
-          $exe = Resolve-Path build/windows/ScreenshotVault.exe
+          Add-Type -Namespace W -Name Mouse -MemberDefinition '[DllImport("user32.dll")] public static extern void mouse_event(int f, int x, int y, int d, int e);'
+          $exe = Resolve-Path build/windows-${{ matrix.edition }}/ScreenshotVault.exe
           $shots = Join-Path $env:RUNNER_TEMP "screens"
           New-Item -ItemType Directory -Force $shots | Out-Null
           $inbox = Join-Path ([Environment]::GetFolderPath("MyPictures")) "Screenshots"
@@ -57,8 +72,8 @@ jobs:
 
           # Fake screenshots, saved where Win+PrtScn would put them, for the app to pick up.
           function Seed {
-            $colors = @("#3A6EA5", "#C0504D", "#9BBB59", "#F79646")
-            for ($i = 0; $i -lt 4; $i++) {
+            $colors = @("#3A6EA5", "#C0504D", "#9BBB59", "#F79646", "#8064A2", "#4BACC6", "#7F7F7F", "#C8338A")
+            for ($i = 0; $i -lt 8; $i++) {
               $bmp = New-Object System.Drawing.Bitmap 960, 600
               $g = [System.Drawing.Graphics]::FromImage($bmp)
               $g.Clear([System.Drawing.ColorTranslator]::FromHtml($colors[$i]))
@@ -69,7 +84,7 @@ jobs:
             }
           }
 
-          foreach ($theme in "xp", "bw") {
+          foreach ($theme in "${{ matrix.themes }}".Split(",")) {
             $root = Join-Path $env:RUNNER_TEMP "vault-$theme"
             New-Item -ItemType Directory -Force $root | Out-Null
             "{""SetupDone"":true,""WidgetOn"":true,""Theme"":""$theme""}" | Set-Content (Join-Path $root "settings.json")
@@ -79,26 +94,44 @@ jobs:
             $app = Start-Process $exe -ArgumentList "--startup" -PassThru
             Start-Sleep 20
             Snap "$theme-1-widget"
+
+            # Drag the grip (bottom-right corner of the widget) down and to the right.
+            $log = Get-Content (Join-Path $root "vault.log") -Raw
+            if ($log -match "widget shown at \{X=(\d+),Y=(\d+),Width=(\d+),Height=(\d+)\}") {
+              $gx = [int]$Matches[1] + [int]$Matches[3] - 10; $gy = [int]$Matches[2] + [int]$Matches[4] - 10
+              [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point $gx, $gy
+              Start-Sleep -Milliseconds 300
+              [W.Mouse]::mouse_event(0x02, 0, 0, 0, 0)  # left down
+              for ($i = 1; $i -le 20; $i++) {
+                [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point ($gx + $i), ($gy + 15 * $i)
+                Start-Sleep -Milliseconds 40
+              }
+              [W.Mouse]::mouse_event(0x04, 0, 0, 0, 0)  # left up
+              Start-Sleep 3
+              Snap "$theme-2-resized"
+            }
+
             $np = Start-Process notepad -WindowStyle Maximized -PassThru
             Start-Sleep 3
-            Snap "$theme-2-behind-notepad"
+            Snap "$theme-3-behind-notepad"
             Stop-Process $np -Force -ErrorAction SilentlyContinue
             Stop-Process $app -Force
             Start-Sleep 3
 
             $app = Start-Process $exe -ArgumentList "--open-gallery" -PassThru
             Start-Sleep 20
-            Snap "$theme-3-gallery"
+            Snap "$theme-4-gallery"
             Stop-Process $app -Force
             Start-Sleep 3
             Copy-Item (Join-Path $root "vault.log") (Join-Path $shots "$theme-vault.log") -ErrorAction SilentlyContinue
+            Copy-Item (Join-Path $root "settings.json") (Join-Path $shots "$theme-settings.json") -ErrorAction SilentlyContinue
           }
           Get-ChildItem $shots | Format-Table Name, Length
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: app-screenshots
+          name: app-screenshots-${{ matrix.edition }}
           path: ${{ runner.temp }}/screens/
 
       - name: Build installer
@@ -106,17 +139,17 @@ jobs:
         run: |
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) { choco install innosetup --no-progress -y; }
-          $version = if ("${{ github.event_name }}" -eq "release") { "${{ github.event.release.tag_name }}".TrimStart("v") } else { "1.0.0" }
-          & $iscc "/DAppVersion=$version" windows/installer.iss
+          $version = if ("${{ github.event_name }}" -eq "release") { "${{ github.event.release.tag_name }}".TrimStart("v") } else { "1.1.0" }
+          & $iscc "/DAppVersion=$version" "/DEdition=${{ matrix.edition }}" windows/installer.iss
           if ($LASTEXITCODE -ne 0) { throw "Installer build failed" }
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ScreenshotVault-Setup
-          path: dist/ScreenshotVault-Setup.exe
+          name: ${{ matrix.setup }}
+          path: dist/${{ matrix.setup }}.exe
 
       - name: Attach to release
         if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" dist/ScreenshotVault-Setup.exe --clobber
+        run: gh release upload "${{ github.event.release.tag_name }}" dist/${{ matrix.setup }}.exe --clobber

@@ -17,6 +17,11 @@ static class Native
     public const int WM_NCLBUTTONDOWN = 0xA1, HTCAPTION = 2, WM_WINDOWPOSCHANGING = 0x46;
     public const uint SWP_NOZORDER = 0x4;
 
+    // Whether the left mouse button is held (works while the browser view has the mouse captured).
+    [DllImport("user32.dll")] public static extern short GetAsyncKeyState(int key);
+    public const int VK_LBUTTON = 0x01;
+    public static bool LeftButtonDown => (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
+
     // The desktop (wallpaper + icons) window, and making the widget belong to it.
     [DllImport("user32.dll")] public static extern IntPtr GetShellWindow();
     [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]

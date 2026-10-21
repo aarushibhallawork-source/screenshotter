@@ -9,10 +9,12 @@ sealed class Settings
 {
     public bool SetupDone { get; set; }
     public bool WidgetOn { get; set; } = true;
-    /// "xp" (Windows XP) or "bw" (Black & White).
+    /// XP edition only: "xp" (Windows XP) or "bw" (Black & White).
     public string Theme { get; set; } = "xp";
     public int? WidgetX { get; set; }
     public int? WidgetY { get; set; }
+    public int? WidgetW { get; set; }
+    public int? WidgetH { get; set; }
 
     static string FilePath => Path.Combine(Paths.Root, "settings.json");
 
@@ -44,7 +46,7 @@ sealed class TrayApp : ApplicationContext
     public TrayApp(bool openGallery = false)
     {
         Vault.Shared.Ui = SynchronizationContext.Current;
-        Server.CurrentTheme = () => _settings.Theme == "bw" ? "bw" : "xp";
+        Server.CurrentTheme = () => !Edition.IsXP ? "y2k" : _settings.Theme == "bw" ? "bw" : "xp";
         Vault.Shared.Prepare();
         try { _server.Start(); }
         catch (Exception e)
@@ -132,11 +134,13 @@ sealed class TrayApp : ApplicationContext
         if (_widget is null || _widget.IsDisposed)
         {
             Point? pos = _settings.WidgetX is int x && _settings.WidgetY is int y ? new Point(x, y) : null;
-            _widget = new WidgetForm(pos)
+            Size? size = _settings.WidgetW is int w && _settings.WidgetH is int h ? new Size(w, h) : null;
+            _widget = new WidgetForm(pos, size)
             {
                 OnOpenGallery = ShowGallery,
                 OnHidden = () => { _settings.WidgetOn = false; _settings.Save(); },
                 OnMoved = p => { _settings.WidgetX = p.X; _settings.WidgetY = p.Y; _settings.Save(); },
+                OnResized = sz => { _settings.WidgetW = sz.Width; _settings.WidgetH = sz.Height; _settings.Save(); },
             };
         }
         _widget.Show();
@@ -165,10 +169,13 @@ sealed class TrayApp : ApplicationContext
         }) { Checked = _widget is { Visible: true } });
         _menu.Items.Add(new ToolStripMenuItem("Start with Windows", null, (_, _) => SetStartWithWindows(!StartsWithWindows))
             { Checked = StartsWithWindows });
-        var theme = new ToolStripMenuItem("Theme");
-        foreach (var (id, name) in new[] { ("xp", "Windows XP"), ("bw", "Black && White") })
-            theme.DropDownItems.Add(new ToolStripMenuItem(name, null, (_, _) => SetTheme(id)) { Checked = Server.CurrentTheme() == id });
-        _menu.Items.Add(theme);
+        if (Edition.IsXP)
+        {
+            var theme = new ToolStripMenuItem("Theme");
+            foreach (var (id, name) in new[] { ("xp", "Windows XP"), ("bw", "Black && White") })
+                theme.DropDownItems.Add(new ToolStripMenuItem(name, null, (_, _) => SetTheme(id)) { Checked = Server.CurrentTheme() == id });
+            _menu.Items.Add(theme);
+        }
         _menu.Items.Add(new ToolStripSeparator());
         _menu.Items.Add("Move Screenshots Folder into Vault", null, (_, _) =>
         {

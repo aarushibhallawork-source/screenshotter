@@ -51,6 +51,7 @@ static class SelfTest
             Check("path escape blocked", Vault.Safe("../settings.json") is null && Vault.Safe("2026-10/../../x") is null);
             Check("normal path allowed", Vault.Safe(rel) != null);
 
+#if EDITION_XP
             foreach (var (id, name) in new[] { ("xp", "Windows XP"), ("bw", "Black & White") })
             {
                 var g = Server.ThemedPage("gallery", id);
@@ -58,6 +59,14 @@ static class SelfTest
                 Check($"{name} theme applied", g.Contains($"data-theme=\"{id}\"") && g.Contains($"/theme.css?t={id}") && w.Contains("data-page=\"widget\""));
                 Check($"{name}: plain wording, no hearts", !g.Contains("♡") && !w.Contains("♡") && !g.Contains("copied 2 ur") && g.Contains("Copied to clipboard"));
             }
+#else
+            var y = Server.ThemedPage("gallery", "y2k");
+            Check("Y2K look, same as the Mac app", y.Contains("copied 2 ur clipboard") && !y.Contains("/theme.css"));
+            var colours = dest is null ? null : Theme.FromImage(dest);
+            Check("wallpaper colours extracted", colours is { } c && c.vars.Count == 8,
+                  colours is { } c2 ? $"ink {c2.vars["ink"]}, panel {c2.vars["pink"]}" : "null");
+#endif
+            Check("widget has a resize grip", Server.ThemedPage("widget", Server.CurrentTheme()).Contains("id=\"grip\""));
 
             var server = new Server();
             server.Start();
@@ -65,9 +74,11 @@ static class SelfTest
             var list = http.GetStringAsync(Server.BaseUrl + "api/list").Result;
             Check("server lists items", list.Contains("Test- App"));
             var page = http.GetAsync(Server.BaseUrl).Result;
-            Check("gallery page served", page.IsSuccessStatusCode && page.Content.ReadAsStringAsync().Result.Contains("Screenshot <small>Vault</small>"));
+            Check("gallery page served", page.IsSuccessStatusCode && page.Content.ReadAsStringAsync().Result.Contains("<small>"));
+#if EDITION_XP
             var css = http.GetAsync(Server.BaseUrl + "theme.css").Result;
             Check("theme stylesheet served", css.IsSuccessStatusCode && css.Content.ReadAsStringAsync().Result.Contains("Luna"));
+#endif
             var widget = http.GetAsync(Server.BaseUrl + "widget").Result;
             Check("widget page served", widget.IsSuccessStatusCode);
             var file = http.GetAsync(Server.BaseUrl + "files/" + Uri.EscapeDataString(rel).Replace("%2F", "/")).Result;

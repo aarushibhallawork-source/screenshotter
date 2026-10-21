@@ -101,6 +101,32 @@ final class DragHandle: NSView {
     }
 }
 
+/// Bottom-right corner of the widget: drag to resize it, keeping its top-left corner in place.
+final class GripView: NSView {
+    private var startMouse = NSPoint.zero
+    private var startFrame = NSRect.zero
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+    override func resetCursorRects() {
+        if #available(macOS 15.0, *) {
+            addCursorRect(bounds, cursor: .frameResize(position: .bottomRight, directions: .all))
+        } else {
+            addCursorRect(bounds, cursor: .crosshair)
+        }
+    }
+    override func mouseDown(with event: NSEvent) {
+        startMouse = NSEvent.mouseLocation
+        startFrame = window?.frame ?? .zero
+    }
+    override func mouseDragged(with event: NSEvent) {
+        guard let w = window else { return }
+        let p = NSEvent.mouseLocation
+        let width = min(max(startFrame.width + p.x - startMouse.x, w.minSize.width), w.maxSize.width)
+        let height = min(max(startFrame.height - (p.y - startMouse.y), w.minSize.height), w.maxSize.height)
+        w.setFrame(NSRect(x: startFrame.minX, y: startFrame.maxY - height, width: width, height: height), display: true)
+    }
+}
+
 final class WidgetController: NSObject, WKNavigationDelegate {
     var window: WidgetWindow!
     var web: ClickThroughWebView!
@@ -130,7 +156,9 @@ final class WidgetController: NSObject, WKNavigationDelegate {
         window.hasShadow = false
         window.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopIconWindow)) + 1)
         window.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenNone]
-        window.setFrameAutosaveName("ScreenshotVaultWidget")
+        window.minSize = NSSize(width: 260, height: 300)
+        window.maxSize = NSSize(width: 1400, height: 1200)
+        window.setFrameAutosaveName("ScreenshotVaultWidget") // remembers position and size
 
         web = ClickThroughWebView(frame: NSRect(origin: .zero, size: widgetSize))
         web.autoresizingMask = [.width, .height]
@@ -147,8 +175,12 @@ final class WidgetController: NSObject, WKNavigationDelegate {
         handle.menu = menu
 
         let root = NSView(frame: NSRect(origin: .zero, size: widgetSize))
+        // Sits over the grip drawn in the page's bottom-right corner.
+        let grip = GripView(frame: NSRect(x: widgetSize.width - 32, y: 6, width: 26, height: 26))
+        grip.autoresizingMask = [.minXMargin, .maxYMargin]
         root.addSubview(web)
         root.addSubview(handle)
+        root.addSubview(grip)
         window.contentView = root
 
         load()

@@ -14,8 +14,8 @@ sealed class Server
     public const int Port = 7333;
     public static readonly string BaseUrl = $"http://localhost:{Port}/";
     public Action OnOpenGallery = () => { };
-    /// The look chosen in the tray menu: "xp" or "bw".
-    public static Func<string> CurrentTheme = () => "xp";
+    /// The current look: "y2k" (same as the Mac app), or in the XP edition "xp" / "bw".
+    public static Func<string> CurrentTheme = () => Edition.IsXP ? "xp" : "y2k";
     HttpListener? _listener;
 
     public void Start()
@@ -89,7 +89,7 @@ sealed class Server
     public static string ThemedPage(string name, string theme)
     {
         var html = Resource(name + ".html");
-        if (html.Length == 0) return html;
+        if (html.Length == 0 || theme == "y2k") return html; // the original look and wording
         _wording ??= JsonSerializer.Deserialize<List<List<string>>>(Resource("theme-text.json"))!
             .Where(p => p.Count == 2 && p[0].Length > 0 && !p[0].StartsWith("Swaps "))
             .Select(p => (p[0], p[1])).ToList();
@@ -122,7 +122,7 @@ sealed class Server
                 case "/": return Page("gallery");
                 case "/widget": return Page("widget");
                 case "/theme.css":
-                    var css = Resource($"theme-{(CurrentTheme() == "bw" ? "bw" : "xp")}.css");
+                    var css = CurrentTheme() switch { "y2k" => "", "bw" => Resource("theme-bw.css"), _ => Resource("theme-xp.css") };
                     return (200, Encoding.UTF8.GetBytes(css), "text/css; charset=utf-8", false);
                 case "/api/version": return Json(new JsonObject { ["version"] = vault.Version });
                 case "/api/list":
