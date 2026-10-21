@@ -50,9 +50,13 @@ static class SelfTest
             Check("path escape blocked", Vault.Safe("../settings.json") is null && Vault.Safe("2026-10/../../x") is null);
             Check("normal path allowed", Vault.Safe(rel) != null);
 
-            var theme = dest is null ? null : Theme.FromImage(dest);
-            Check("wallpaper colours extracted", theme is { } t && t.vars.Count == 8,
-                  theme is { } t2 ? $"ink {t2.vars["ink"]}, panel {t2.vars["pink"]}" : "null");
+            foreach (var (id, name) in new[] { ("xp", "Windows XP"), ("bw", "Black & White") })
+            {
+                var g = Server.ThemedPage("gallery", id);
+                var w = Server.ThemedPage("widget", id);
+                Check($"{name} theme applied", g.Contains($"data-theme=\"{id}\"") && g.Contains($"/theme.css?t={id}") && w.Contains("data-page=\"widget\""));
+                Check($"{name}: plain wording, no hearts", !g.Contains("♡") && !w.Contains("♡") && !g.Contains("copied 2 ur") && g.Contains("Copied to clipboard"));
+            }
 
             var server = new Server();
             server.Start();
@@ -60,7 +64,9 @@ static class SelfTest
             var list = http.GetStringAsync(Server.BaseUrl + "api/list").Result;
             Check("server lists items", list.Contains("Test- App"));
             var page = http.GetAsync(Server.BaseUrl).Result;
-            Check("gallery page served", page.IsSuccessStatusCode && page.Content.ReadAsStringAsync().Result.Contains("screenshot"));
+            Check("gallery page served", page.IsSuccessStatusCode && page.Content.ReadAsStringAsync().Result.Contains("Screenshot <small>Vault</small>"));
+            var css = http.GetAsync(Server.BaseUrl + "theme.css").Result;
+            Check("theme stylesheet served", css.IsSuccessStatusCode && css.Content.ReadAsStringAsync().Result.Contains("Luna"));
             var widget = http.GetAsync(Server.BaseUrl + "widget").Result;
             Check("widget page served", widget.IsSuccessStatusCode);
             var file = http.GetAsync(Server.BaseUrl + "files/" + Uri.EscapeDataString(rel).Replace("%2F", "/")).Result;

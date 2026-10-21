@@ -1,0 +1,108 @@
+/* Black & White theme for the Windows app: plain, monochrome, no decoration.
+   Screenshots themselves keep their colours. Loaded after each page's own styles. */
+
+:root {
+  --bg: #FFFFFF; --paper: #FFFFFF; --ink: #000000; --muted: #666666; --line: #000000;
+  --pink: #000000; --pink-soft: #E6E6E6; --pink-wash: #F2F2F2;
+  --lav: #DDDDDD; --lav-soft: #F2F2F2; --blue: #000000; --blue-soft: #F2F2F2; --mint: #F2F2F2;
+  --butter: #FFFFFF; --danger: #000000; --rose: #000000; --cream: #FFFFFF;
+  --mono: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --pixel: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --bubble: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --hard: none;
+}
+
+body { font: 13px/1.5 "Segoe UI", system-ui, sans-serif; background: #fff; }
+::selection { background: #000; color: #fff; }
+.spark { display: none; }
+
+/* ---------- window chrome (both pages) ---------- */
+
+.win { background: #fff; border: 1px solid #000; border-radius: 0; box-shadow: none; }
+.titlebar, .titlebar.pink, .titlebar.mint { background: #000; color: #fff; border-bottom: 0;
+  font: 600 11px "Segoe UI", system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; padding: 6px 6px 6px 12px; }
+.titlebar .count { color: #bbb; font: 11px "Segoe UI", sans-serif; text-transform: none; letter-spacing: 0; }
+.ctl i { width: 18px; height: 16px; border: 1px solid #fff; background: #000; color: #fff; font: 10px "Segoe UI", sans-serif; }
+.ctl i.x:hover { background: #fff; color: #000; }
+
+.btn, .copy, .nav, .foot .btn, .pic .hint {
+  font: 600 12px "Segoe UI", system-ui, sans-serif; color: #000; background: #fff; border: 1px solid #000; border-radius: 0;
+  box-shadow: none; text-transform: none; letter-spacing: 0; }
+.btn:hover, .copy:hover, .nav:hover { background: #000; color: #fff; }
+.btn:active, .copy:active, .nav:active { transform: none; }
+.btn.primary, .copy { background: #000; color: #fff; }
+.btn.primary:hover, .copy:hover { background: #333; }
+.btn.danger { background: #fff; color: #000; }
+.btn.danger:hover { background: #000; color: #fff; }
+kbd { font: 10px "Segoe UI", sans-serif; border: 1px solid currentColor; border-radius: 0; opacity: .7; }
+
+input[type=search], .searchwin input[type=search] { font: 13px "Segoe UI", sans-serif; border: 1px solid #000; border-radius: 0; padding: 5px 8px; background: #fff; }
+.searchwin input[type=search]:focus { background: #F2F2F2; }
+select { font: 13px "Segoe UI", sans-serif; border: 1px solid #000; border-radius: 0; background: #fff; }
+
+/* ---------- gallery ---------- */
+
+[data-page=gallery] .sticky-bar { background: #fff; border-bottom: 1px solid #000; backdrop-filter: none; }
+[data-page=gallery] .logo { font: 600 24px/1.2 "Segoe UI", system-ui, sans-serif; transform: none; filter: none; letter-spacing: -.01em;
+  background: none; -webkit-background-clip: border-box; background-clip: border-box; -webkit-text-stroke: 0; color: #000; }
+[data-page=gallery] .logo small { display: inline; font-size: inherit; padding-left: 0; font-weight: 300; }
+
+.chips .lbl { font: 12px "Segoe UI", sans-serif; color: #666; }
+.chip { font: 12px "Segoe UI", sans-serif; border: 1px solid #000; background: #fff; }
+.chip:hover { transform: none; background: #F2F2F2; }
+.chip.on { background: #000; color: #fff; box-shadow: none; }
+
+.day .titlebar .t { text-transform: uppercase; }
+[data-page=gallery] .card { background: #fff; border: 1px solid #000; box-shadow: none; padding: 8px 8px 0; }
+[data-page=gallery] .card:hover { transform: none; box-shadow: 4px 4px 0 #000; }
+[data-page=gallery] .card.sel { background: #fff; box-shadow: none; outline: 3px solid #000; outline-offset: 2px; }
+[data-page=gallery] .thumb { border: 1px solid #000; background: #F2F2F2; }
+.meta .app { font: 600 12.5px "Segoe UI", sans-serif; }
+.meta .time { font: 11px "Segoe UI", sans-serif; color: #666; }
+.check { border: 1px solid #000; color: #000; }
+.badge { background: #000; color: #fff; border: 0; font: 600 10px "Segoe UI", sans-serif; }
+
+.empty .big { font: 600 20px "Segoe UI", sans-serif; color: #000; -webkit-text-stroke: 0; }
+.empty kbd { background: #fff; }
+
+.toast.win { box-shadow: 4px 4px 0 #000; }
+.toast .heart { display: none; }
+
+.lb { background: rgba(255, 255, 255, .88); }
+.lb-tools { background: #fff; border-bottom: 1px solid #000; }
+.lb-body { background: #F2F2F2; }
+.lb-body img, .lb-body video { border: 1px solid #000; }
+
+.taskbar { background: #fff; border-top: 1px solid #000; }
+.start { background: #000; color: #fff; border: 1px solid #000; box-shadow: none; font: 600 13px "Segoe UI", sans-serif; }
+.start b { display: none; }
+.task { background: #fff; border: 1px solid #000; font: 12px "Segoe UI", sans-serif; }
+.tray { border: 1px solid #000; font: 12px "Segoe UI", sans-serif; }
+
+/* ---------- desktop widget ---------- */
+
+[data-page=widget] body { padding: 4px 8px 8px 4px; }
+html.native[data-page=widget] body { padding: 0; }
+html.native[data-page=widget] .win { border: 0; box-shadow: none; }
+[data-page=widget] .titlebar .t.flash { color: #fff; text-decoration: underline; }
+[data-page=widget] .grid { background: #fff; }
+[data-page=widget] .pic { background: #fff; border: 1px solid #000; box-shadow: none; }
+[data-page=widget] .pic:hover { transform: none; box-shadow: 3px 3px 0 #000; }
+[data-page=widget] .pic:active { transform: none; box-shadow: none; }
+[data-page=widget] .pic img, [data-page=widget] .pic .vid { border: 1px solid #000; background: #F2F2F2; }
+[data-page=widget] .pic .cap b { color: #000; font: 600 11px "Segoe UI", sans-serif; }
+[data-page=widget] .pic .cap span { font: 10px "Segoe UI", sans-serif; color: #666; }
+[data-page=widget] .pic .hint { font-size: 10px; padding: 1px 6px; background: #000; color: #fff; }
+[data-page=widget] .pic.done .hint { background: #fff; color: #000; }
+[data-page=widget] .pic.menu-on { outline: 2px solid #000; }
+[data-page=widget] .empty b { font: 600 16px "Segoe UI", sans-serif; color: #000; -webkit-text-stroke: 0; }
+[data-page=widget] .foot { background: #fff; border-top: 1px solid #000; }
+[data-page=widget] .foot .stats { color: #000; font: 600 11px "Segoe UI", sans-serif; }
+[data-page=widget] .foot .btn { background: #000; color: #fff; }
+[data-page=widget] .foot .btn:hover { background: #333; }
+
+.menu { background: #fff; border: 1px solid #000; border-radius: 0; box-shadow: 3px 3px 0 #000; font: 12px "Segoe UI", sans-serif; }
+.menu button { color: #000; border-radius: 0; }
+.menu button:hover, .menu button.danger:hover { background: #000; color: #fff; }
+.menu button.danger { color: #000; font-weight: 600; }
+.menu hr { border-top: 1px solid #000; }

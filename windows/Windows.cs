@@ -1,6 +1,6 @@
-// The app's two windows: the desktop widget and the gallery. Both host the shared web pages.
+// The app's two windows: the desktop widget and the gallery. Both host the shared web pages,
+// styled with the Windows theme chosen in the tray menu.
 using System.Runtime.InteropServices;
-using System.Text.Json;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 
@@ -36,10 +36,6 @@ sealed class WidgetForm : Form
 {
     readonly WebView2 _web = new() { Dock = DockStyle.Fill };
     readonly ContextMenuStrip _menu = new();
-    readonly System.Windows.Forms.Timer _themeTimer = new() { Interval = 4000 };
-    Dictionary<string, string>? _theme;
-    string _wallpaperKey = "";
-    bool _themeBusy;
     public Action OnOpenGallery = () => { };
     public Action OnHidden = () => { };
     public Action<Point> OnMoved = _ => { };
@@ -50,7 +46,7 @@ sealed class WidgetForm : Form
         FormBorderStyle = FormBorderStyle.None;
         ShowInTaskbar = false;
         StartPosition = FormStartPosition.Manual;
-        BackColor = Color.FromArgb(255, 248, 246);
+        BackColor = Color.FromArgb(236, 233, 216);
         Icon = Web.AppIcon();
         var scale = DeviceDpi / 96.0;
         ClientSize = new Size((int)(316 * scale), (int)(366 * scale));
@@ -67,7 +63,6 @@ sealed class WidgetForm : Form
 
         Load += async (_, _) => await Init();
         Move += (_, _) => { if (Visible) OnMoved(Location); };
-        _themeTimer.Tick += (_, _) => RefreshTheme();
     }
 
     // A tool window: no taskbar button, not in Alt+Tab.
@@ -91,8 +86,7 @@ sealed class WidgetForm : Form
 
     async Task Init()
     {
-        var round = Native.DWMWCP_ROUND;
-        Native.DwmSetWindowAttribute(Handle, Native.DWMWA_WINDOW_CORNER_PREFERENCE, ref round, sizeof(int));
+        SetFrame(Server.CurrentTheme());
         try { await Web.Setup(_web); }
         catch (Exception e)
         {
@@ -113,45 +107,33 @@ sealed class WidgetForm : Form
         };
         _web.CoreWebView2.NavigationCompleted += (_, e) =>
         {
-            if (e.IsSuccess) ApplyTheme();
-            else Task.Delay(3000).ContinueWith(_ => BeginInvoke(Reload)); // server still starting
+            if (!e.IsSuccess) Task.Delay(3000).ContinueWith(_ => BeginInvoke(Reload)); // server still starting
         };
         Reload();
-        RefreshTheme();
-        _themeTimer.Start();
+    }
+
+    /// Matches the window frame to the theme: XP gets rounded corners and a Luna-blue border,
+    /// Black & White gets square corners and a black border (Windows 11; Windows 10 ignores this).
+    void SetFrame(string theme)
+    {
+        var xp = theme != "bw";
+        var corners = xp ? Native.DWMWCP_ROUND : 1; // 1 = DWMWCP_DONOTROUND
+        Native.DwmSetWindowAttribute(Handle, Native.DWMWA_WINDOW_CORNER_PREFERENCE, ref corners, sizeof(int));
+        var border = xp ? 0xD93108 : 0x000000; // COLORREF is 0x00BBGGRR: XP blue #0831D9, or black
+        Native.DwmSetWindowAttribute(Handle, Native.DWMWA_BORDER_COLOR, ref border, sizeof(int));
+        BackColor = xp ? Color.FromArgb(236, 233, 216) : Color.White;
+        if (_web.CoreWebView2 != null) _web.DefaultBackgroundColor = BackColor;
+    }
+
+    /// Called when the theme is changed from the tray menu.
+    public void ApplyLook(string theme)
+    {
+        if (!IsHandleCreated) return;
+        SetFrame(theme);
+        Reload();
     }
 
     void Reload() => _web.CoreWebView2?.Navigate(Server.BaseUrl + "widget");
-
-    void RefreshTheme()
-    {
-        if (_themeBusy) return;
-        _themeBusy = true;
-        var last = _wallpaperKey;
-        Task.Run(() =>
-        {
-            var path = Theme.WallpaperPath();
-            var key = path is null ? "" : $"{path}|{File.GetLastWriteTimeUtc(path).Ticks}";
-            var t = key == last || path is null ? null : Theme.FromImage(path);
-            BeginInvoke(() =>
-            {
-                _themeBusy = false;
-                if (key == last) return;
-                _wallpaperKey = key;
-                if (t is not { } th) return; // unreadable wallpaper: keep current colours
-                _theme = th.vars;
-                var border = th.ink.R | (th.ink.G << 8) | (th.ink.B << 16);
-                Native.DwmSetWindowAttribute(Handle, Native.DWMWA_BORDER_COLOR, ref border, sizeof(int));
-                ApplyTheme();
-            });
-        });
-    }
-
-    void ApplyTheme()
-    {
-        if (_theme is null || _web.CoreWebView2 is null) return;
-        _ = _web.CoreWebView2.ExecuteScriptAsync($"window.applyTheme && applyTheme({JsonSerializer.Serialize(_theme)})");
-    }
 }
 
 /// The main gallery window.
@@ -168,7 +150,7 @@ sealed class GalleryForm : Form
         Size = new Size((int)(1180 * scale), (int)(800 * scale));
         MinimumSize = new Size((int)(420 * scale), (int)(420 * scale));
         StartPosition = FormStartPosition.CenterScreen;
-        BackColor = Color.FromArgb(248, 244, 251);
+        BackColor = Server.CurrentTheme() == "bw" ? Color.White : Color.FromArgb(236, 233, 216);
         Controls.Add(_web);
         Load += async (_, _) =>
         {
@@ -194,6 +176,13 @@ sealed class GalleryForm : Form
         if (!Visible) Show();
         if (WindowState == FormWindowState.Minimized) WindowState = FormWindowState.Normal;
         Activate();
+        _web.CoreWebView2?.Reload();
+    }
+
+    /// Called when the theme is changed from the tray menu.
+    public void ApplyLook(string theme)
+    {
+        BackColor = theme == "bw" ? Color.White : Color.FromArgb(236, 233, 216);
         _web.CoreWebView2?.Reload();
     }
 }

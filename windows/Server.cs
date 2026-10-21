@@ -14,6 +14,8 @@ sealed class Server
     public const int Port = 7333;
     public static readonly string BaseUrl = $"http://localhost:{Port}/";
     public Action OnOpenGallery = () => { };
+    /// The look chosen in the tray menu: "xp" or "bw".
+    public static Func<string> CurrentTheme = () => "xp";
     HttpListener? _listener;
 
     public void Start()
@@ -73,13 +75,39 @@ sealed class Server
         return (200, bytes, Types.GetValueOrDefault(Path.GetExtension(path), "application/octet-stream"), true);
     }
 
-    static (int, byte[], string, bool) Page(string name)
+    static string Resource(string name)
     {
         using var s = Assembly.GetExecutingAssembly().GetManifestResourceStream(name);
-        if (s is null) return NotFound;
-        using var ms = new MemoryStream();
-        s.CopyTo(ms);
-        return (200, ms.ToArray(), "text/html; charset=utf-8", false);
+        if (s is null) return "";
+        using var r = new StreamReader(s, Encoding.UTF8);
+        return r.ReadToEnd();
+    }
+
+    static List<(string from, string to)>? _wording;
+
+    /// The shared pages, dressed for Windows: plain wording, plus the chosen theme's stylesheet.
+    public static string ThemedPage(string name, string theme)
+    {
+        var html = Resource(name + ".html");
+        if (html.Length == 0) return html;
+        _wording ??= JsonSerializer.Deserialize<List<List<string>>>(Resource("theme-text.json"))!
+            .Where(p => p.Count == 2 && p[0].Length > 0 && !p[0].StartsWith("Swaps "))
+            .Select(p => (p[0], p[1])).ToList();
+        foreach (var (from, to) in _wording) html = html.Replace(from, to);
+        html = ReplaceFirst(html, "<html lang=\"en\"", $"<html lang=\"en\" data-theme=\"{theme}\" data-page=\"{name}\"");
+        return ReplaceFirst(html, "</head>", $"<link rel=\"stylesheet\" href=\"/theme.css?t={theme}\"></head>");
+    }
+
+    static string ReplaceFirst(string s, string find, string repl)
+    {
+        var i = s.IndexOf(find, StringComparison.Ordinal);
+        return i < 0 ? s : s[..i] + repl + s[(i + find.Length)..];
+    }
+
+    static (int, byte[], string, bool) Page(string name)
+    {
+        var html = ThemedPage(name, CurrentTheme());
+        return html.Length == 0 ? NotFound : (200, Encoding.UTF8.GetBytes(html), "text/html; charset=utf-8", false);
     }
 
     (int, byte[], string, bool) Route(HttpListenerRequest req)
@@ -91,8 +119,11 @@ sealed class Server
         {
             switch (path)
             {
-                case "/": return Page("gallery.html");
-                case "/widget": return Page("widget.html");
+                case "/": return Page("gallery");
+                case "/widget": return Page("widget");
+                case "/theme.css":
+                    var css = Resource($"theme-{(CurrentTheme() == "bw" ? "bw" : "xp")}.css");
+                    return (200, Encoding.UTF8.GetBytes(css), "text/css; charset=utf-8", false);
                 case "/api/version": return Json(new JsonObject { ["version"] = vault.Version });
                 case "/api/list":
                     var items = vault.ListItems();

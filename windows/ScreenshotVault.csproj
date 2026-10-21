@@ -32,6 +32,10 @@
     <EmbeddedResource Include="..\web\gallery.html" LogicalName="gallery.html" />
     <EmbeddedResource Include="..\web\widget.html" LogicalName="widget.html" />
     <EmbeddedResource Include="app.ico" LogicalName="app.ico" />
+    <!-- Windows-only looks: Windows XP and Black & White, plus plain wording for both. -->
+    <EmbeddedResource Include="..\web\themes\windows-xp.css" LogicalName="theme-xp.css" />
+    <EmbeddedResource Include="..\web\themes\black-white.css" LogicalName="theme-bw.css" />
+    <EmbeddedResource Include="..\web\themes\text.json" LogicalName="theme-text.json" />
   </ItemGroup>
 
 </Project>
