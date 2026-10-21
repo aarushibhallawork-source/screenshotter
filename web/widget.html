@@ -117,13 +117,16 @@ function when(ts) {
   return d.toLocaleDateString([], { day: "numeric", month: "short" }).toLowerCase();
 }
 
-// How many screenshots fit: columns of at least 130px and rows of at least 80px, so a bigger widget shows more.
+// How many screenshots fit: cards at least --cell-w × --cell-h (130×80 unless a theme says otherwise),
+// so a bigger widget shows more.
 function fit() {
   const g = $("#grid"), cs = getComputedStyle(g);
   const w = g.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
   const h = g.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
   const gap = parseFloat(cs.columnGap) || 10;
-  return { cols: Math.max(1, Math.floor((w + gap) / (130 + gap))), rows: Math.max(1, Math.floor((h + gap) / (80 + gap))) };
+  const root = getComputedStyle(document.documentElement);
+  const cw = parseFloat(root.getPropertyValue("--cell-w")) || 130, ch = parseFloat(root.getPropertyValue("--cell-h")) || 80;
+  return { cols: Math.max(1, Math.floor((w + gap) / (cw + gap))), rows: Math.max(1, Math.floor((h + gap) / (ch + gap))) };
 }
 
 async function load() {

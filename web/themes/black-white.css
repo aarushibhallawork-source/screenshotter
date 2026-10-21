@@ -101,6 +101,25 @@ html.native[data-page=widget] .win { border: 0; box-shadow: none; }
 [data-page=widget] .foot .btn { background: #000; color: #fff; }
 [data-page=widget] .foot .btn:hover { background: #333; }
 
+/* XP edition widget: 50% bigger than the others, with larger text. */
+[data-page=widget] { --cell-w: 195px; --cell-h: 125px; }
+[data-page=widget] .titlebar { height: 36px; min-height: 36px; font-size: 15px; padding: 4px 6px 4px 12px; }
+[data-page=widget] .ctl i { width: 25px; height: 25px; font-size: 13px; }
+[data-page=widget] .grid { gap: 12px; padding: 12px; }
+[data-page=widget] .pic { padding: 6px 6px 0; }
+[data-page=widget] .pic .cap { padding: 5px 2px 7px; }
+[data-page=widget] .pic .cap b { font-size: 13px; }
+[data-page=widget] .pic .cap span { font-size: 12px; }
+[data-page=widget] .pic .hint { font-size: 12px; padding: 2px 8px; right: 12px; top: 12px; }
+[data-page=widget] .empty b { font-size: 21px; }
+[data-page=widget] .empty { font-size: 13px; }
+[data-page=widget] .foot { padding: 9px 34px 9px 12px; }
+[data-page=widget] .foot .stats { font-size: 13px; }
+[data-page=widget] .foot .btn { font-size: 13px; padding: 5px 14px; }
+[data-page=widget] .grip { width: 22px; height: 22px; right: 3px; bottom: 3px; }
+[data-page=widget] .menu { font-size: 13px; min-width: 210px; }
+[data-page=widget] .menu button { padding: 6px 20px; }
+
 .menu { background: #fff; border: 1px solid #000; border-radius: 0; box-shadow: 3px 3px 0 #000; font: 12px "Segoe UI", sans-serif; }
 .menu button { color: #000; border-radius: 0; }
 .menu button:hover, .menu button.danger:hover { background: #000; color: #fff; }

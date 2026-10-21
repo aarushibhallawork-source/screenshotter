@@ -61,9 +61,12 @@ sealed class WidgetForm : Form
         StartPosition = FormStartPosition.Manual;
         Icon = Web.AppIcon();
         var scale = DeviceDpi / 96.0;
-        MinimumSize = new Size((int)(250 * scale), (int)(290 * scale));
+        // The XP edition's widget is 50% bigger (its theme also uses larger text and cards).
+        var k = Edition.IsXP ? 1.5 : 1.0;
+        MinimumSize = new Size((int)(250 * k * scale), (int)(290 * k * scale));
+        // A saved size smaller than the minimum (e.g. from before the XP widget grew) falls back to the default.
         ClientSize = size is { } sz && sz.Width >= MinimumSize.Width && sz.Height >= MinimumSize.Height
-            ? sz : new Size((int)(316 * scale), (int)(366 * scale));
+            ? sz : new Size((int)(316 * k * scale), (int)(366 * k * scale));
         var wa = Screen.PrimaryScreen!.WorkingArea;
         var pos = location ?? new Point(wa.Right - Width - (int)(24 * scale), wa.Top + (int)(24 * scale));
         // Don't restore onto a monitor that's no longer there.
