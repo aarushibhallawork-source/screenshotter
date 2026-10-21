@@ -76,7 +76,7 @@ jobs:
             $env:SCREENSHOTVAULT_ROOT = $root
             Seed
 
-            $app = Start-Process $exe -PassThru
+            $app = Start-Process $exe -ArgumentList "--startup" -PassThru
             Start-Sleep 20
             Snap "$theme-1-widget"
             $np = Start-Process notepad -WindowStyle Maximized -PassThru

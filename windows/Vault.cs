@@ -17,7 +17,37 @@ static class Paths
     // SCREENSHOTVAULT_ROOT lets the automated GitHub check run the app against a test vault.
     public static string Root = Environment.GetEnvironmentVariable("SCREENSHOTVAULT_ROOT") is { Length: > 0 } r ? r
         : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ScreenshotVault");
-    public static string Archive => Path.Combine(Root, "archive");
+    static readonly string Legacy = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ScreenshotVault", "archive");
+    static string? _archive;
+
+    /// Where screenshots are kept: a normal folder on the Desktop, so there's always a copy you can see.
+    /// (App data like thumbnails and settings stays hidden in Root.) Test runs keep everything inside Root.
+    public static string Archive
+    {
+        get => _archive ??= Environment.GetEnvironmentVariable("SCREENSHOTVAULT_ROOT") is { Length: > 0 }
+            ? Path.Combine(Root, "archive")
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Screenshot Vault");
+        set => _archive = value;
+    }
+
+    /// Earlier versions kept screenshots hidden in %LOCALAPPDATA%; move them to the Desktop folder.
+    public static void MoveLegacyArchive()
+    {
+        if (!Directory.Exists(Legacy) || string.Equals(Path.GetFullPath(Legacy), Path.GetFullPath(Archive), StringComparison.OrdinalIgnoreCase)) return;
+        var moved = 0;
+        foreach (var f in Directory.EnumerateFiles(Legacy, "*", System.IO.SearchOption.AllDirectories).ToList())
+        {
+            var dest = Path.Combine(Archive, Path.GetRelativePath(Legacy, f));
+            if (File.Exists(dest)) continue;
+            try { Directory.CreateDirectory(Path.GetDirectoryName(dest)!); File.Move(f, dest); moved++; }
+            catch (Exception e) { Vault.Log($"couldn't move {f}: {e.Message}"); }
+        }
+        foreach (var d in Directory.EnumerateDirectories(Legacy, "*", System.IO.SearchOption.AllDirectories).OrderByDescending(d => d.Length))
+            if (!Directory.EnumerateFileSystemEntries(d).Any()) Directory.Delete(d);
+        if (!Directory.EnumerateFileSystemEntries(Legacy).Any()) Directory.Delete(Legacy);
+        if (moved > 0) Vault.Log($"moved {moved} screenshots to {Archive}");
+    }
     public static string Thumbs => Path.Combine(Root, "thumbs");
     public static string Config => Path.Combine(Root, "config.json");
 
@@ -56,6 +86,7 @@ sealed class Vault
 
     public void Prepare()
     {
+        try { Paths.MoveLegacyArchive(); } catch (Exception e) { Log($"legacy move failed: {e.Message}"); }
         Directory.CreateDirectory(Paths.Archive);
         Directory.CreateDirectory(Paths.Thumbs);
     }

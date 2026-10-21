@@ -23,6 +23,7 @@ static class SelfTest
         {
             Directory.CreateDirectory(dir);
             Paths.Root = Path.Combine(Path.GetFullPath(dir), "vault");
+            Paths.Archive = Path.Combine(Paths.Root, "archive");
             Vault.Shared.Prepare();
 
             // A fake Snipping Tool screenshot.

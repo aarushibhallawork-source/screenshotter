@@ -26,9 +26,9 @@
   .ctl { display: flex; gap: 3px; }
   .ctl i { width: 16px; height: 14px; border: 1.5px solid var(--pink); background: transparent; color: var(--pink); display: grid; place-items: center;
     font: 700 9px/1 var(--mono); font-style: normal; }
-  .grid { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: 10px; padding: 10px;
+  .grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); gap: 10px; padding: 10px;
     background: repeating-linear-gradient(90deg, var(--pink-wash) 0 14px, var(--paper) 14px 28px); }
-  .pic { position: relative; min-height: 0; display: flex; flex-direction: column; background: var(--paper); border: 1.5px solid var(--ink);
+  .pic { position: relative; min-height: 0; min-width: 0; display: flex; flex-direction: column; background: var(--paper); border: 1.5px solid var(--ink);
     padding: 4px 4px 0; box-shadow: 2px 2px 0 var(--ink); cursor: pointer; transition: transform .12s, box-shadow .12s; }
   .pic:nth-child(odd) { --tilt: -1.5deg; } .pic:nth-child(even) { --tilt: 1.2deg; }
   .pic:hover { transform: rotate(var(--tilt)) translateY(-2px); box-shadow: 3px 4px 0 var(--ink); z-index: 2; }

@@ -89,16 +89,16 @@ It starts by itself every time you sign in.
 
 ### Using it
 
-- Take screenshots with **Win+PrtScn** or **Win+Shift+S**. Each one is copied to your clipboard, renamed by time and app, and moved out of `Pictures\Screenshots` into the vault.
+- Take screenshots with **Win+PrtScn** or **Win+Shift+S**. Each one is copied to your clipboard, renamed by time and app, and moved out of `Pictures\Screenshots` into the **Screenshot Vault** folder on your Desktop, sorted into month and day folders. That folder is always there as a plain copy of everything you can open, back up or drag elsewhere.
   - For **Win+Shift+S** snips, make sure Snipping Tool saves them: **Snipping Tool → Settings → Automatically save screenshots**.
 - **The ♡ icon by the clock** (it may be under the **^** arrow): click it for the gallery, or right-click it for **Show Desktop Widget**, **Start with Windows**, **Move Screenshots Folder into Vault**, **Open Vault Folder** and **Turn Off…**.
 - **Themes:** the Windows version has its own looks. It's **Windows XP** by default (blue title bars, green Start button), or switch to **Black & White** from **♡ → Theme**. The gallery and the desktop widget both follow your choice.
 - The gallery and widget work like on Mac. Use **Ctrl-click** to select several screenshots, and deleted screenshots go to the **Recycle Bin**.
-- Your vault lives in `%LOCALAPPDATA%\ScreenshotVault`.
+- Opening Screenshot Vault from the Start menu opens the gallery. When it starts by itself at sign-in it stays quiet in the tray.
 
 ### Uninstall
 
-Open **Settings → Apps → Installed apps → Screenshot Vault → Uninstall**. Your vault folder is kept.
+Open **Settings → Apps → Installed apps → Screenshot Vault → Uninstall**. The **Screenshot Vault** folder on your Desktop is kept, with all your screenshots.
 
 ---
 

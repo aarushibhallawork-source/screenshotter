@@ -62,6 +62,7 @@ sealed class TrayApp : ApplicationContext
 
         if (_settings.SetupDone)
         {
+            if (StartsWithWindows) SetStartWithWindows(true); // refresh the entry (path / --startup flag)
             Vault.Shared.StartWatching();
             if (_settings.WidgetOn) ShowWidget();
             if (openGallery) ShowGallery();
@@ -78,8 +79,8 @@ sealed class TrayApp : ApplicationContext
     {
         var r = MessageBox.Show(
             "Welcome to Screenshot Vault ♡\n\n" +
-            "From now on, every screenshot you take is copied to your clipboard right away and filed by date in your vault, " +
-            "instead of piling up in Pictures\\Screenshots.\n\n" +
+            "From now on, every screenshot you take is copied to your clipboard right away and filed by date " +
+            "in the \"Screenshot Vault\" folder on your Desktop, instead of piling up in Pictures\\Screenshots.\n\n" +
             "Use Win+Shift+S or Win+PrtScn. Find them any time in the gallery (the ♡ icon by the clock) or in the widget on your desktop.\n\n" +
             "Turn it on?",
             "Screenshot Vault", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
@@ -113,7 +114,8 @@ sealed class TrayApp : ApplicationContext
     static void SetStartWithWindows(bool on)
     {
         using var k = Registry.CurrentUser.CreateSubKey(RunKey);
-        if (on) k.SetValue(RunName, $"\"{Environment.ProcessPath}\"");
+        // --startup: when Windows starts it at sign-in, stay quiet (no gallery window).
+        if (on) k.SetValue(RunName, $"\"{Environment.ProcessPath}\" --startup");
         else k.DeleteValue(RunName, false);
     }
 
@@ -219,25 +221,47 @@ static class Program
     {
         if (args.Length >= 2 && args[0] == "--selftest") return SelfTest.Run(args[1]);
 
+        Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
+        Application.EnableVisualStyles();
+        Application.SetCompatibleTextRenderingDefault(false);
+
+        // Never fail silently: log anything unexpected and tell the person.
+        Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+        Application.ThreadException += (_, e) => Crashed(e.Exception);
+        AppDomain.CurrentDomain.UnhandledException += (_, e) => Crashed(e.ExceptionObject as Exception);
+        Vault.Log($"starting {Application.ProductVersion} ({string.Join(' ', args)})");
+
         using var mutex = new Mutex(true, "ScreenshotVault.SingleInstance", out var first);
         if (!first)
         {
             // Already running: ask that copy to open its gallery.
             try
             {
-                using var c = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
-                c.PostAsync(Server.BaseUrl + "api/openvault", new StringContent("{}")).Wait();
+                using var c = new HttpClient { Timeout = TimeSpan.FromSeconds(4) };
+                if (c.PostAsync(Server.BaseUrl + "api/openvault", new StringContent("{}")).Result.IsSuccessStatusCode) return 0;
             }
             catch { }
-            return 0;
+            // It isn't answering: offer to restart it.
+            if (MessageBox.Show("Screenshot Vault is already running but isn't responding.\n\nRestart it?",
+                    "Screenshot Vault", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return 0;
+            foreach (var p in System.Diagnostics.Process.GetProcessesByName("ScreenshotVault"))
+                if (p.Id != Environment.ProcessId) { try { p.Kill(); p.WaitForExit(5000); } catch { } }
+            try { mutex.WaitOne(5000); } catch (AbandonedMutexException) { }
         }
 
-        Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
-        Application.EnableVisualStyles();
-        Application.SetCompatibleTextRenderingDefault(false);
         SynchronizationContext.SetSynchronizationContext(new WindowsFormsSynchronizationContext());
-        Application.Run(new TrayApp(args.Contains("--open-gallery")));
+        // Opened by you (Start menu, installer, double-click): show the gallery. Started at sign-in: stay quiet.
+        Application.Run(new TrayApp(!args.Contains("--startup") || args.Contains("--open-gallery")));
         GC.KeepAlive(mutex);
         return 0;
+    }
+
+    static void Crashed(Exception? e)
+    {
+        Vault.Log($"CRASH: {e}");
+        MessageBox.Show($"Screenshot Vault ran into a problem and needs to close.\n\n{e?.Message}\n\n" +
+                        $"Details were saved to {Path.Combine(Paths.Root, "vault.log")}",
+                        "Screenshot Vault", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        Environment.Exit(1);
     }
 }
